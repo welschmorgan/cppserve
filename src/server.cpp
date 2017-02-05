@@ -6,21 +6,39 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:43:08 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/05 18:27:33 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/05 19:57:46 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
 #include "server.h"
 #include <stdlib.h>
 #include <iostream>
+#include <sstream>
 #include <signal.h>
 #include <arpa/inet.h>
 
 HTTPServerList					HTTPServer::Instances = HTTPServerList();
 
+static void						option_verbose(HTTPServer *serv) {
+	serv->setVerbose(true);
+}
+
+static void						server_accept(HTTPServer *serv, SocketStream::ptr strm, sockaddr_in *addr) {
+	serv->onAccept(strm, addr);
+}
+static void						server_reject(HTTPServer *serv, SocketStream::ptr strm, sockaddr_in *addr) {
+	serv->onReject(strm, addr);
+}
+static bool						server_guard(HTTPServer *serv, SocketStream::ptr strm, sockaddr_in *addr) {
+	return (serv->onGuard(strm, addr));
+}
+static void						server_error(HTTPServer *serv, sockaddr_in *cli) {
+	serv->onError(cli);
+}
+
 HTTPServer::HTTPServer(int argc, char *const argv[])
 	: mArgs(argc, argv)
-	, mSocket()
+	, mSocket(0, 0)
 	, mPort(8080)
 	, mClients()
 	, mVerbose(true)
@@ -28,17 +46,21 @@ HTTPServer::HTTPServer(int argc, char *const argv[])
 {
 	Instances.push_back(this);
 	const std::vector<std::string> verbose{"v", "verbose"};
-	mArgs.set("verbose", verbose,
-			  std::bind(&HTTPServer::setVerbose, *this, true),
+	mArgs.set("verbose", verbose, std::bind(option_verbose, this),
 			  "");
 	mArgs.parse();
 }
 
-HTTPServer::HTTPServer(const HTTPServer &rk)
-{ (void) rk; }
+/*HTTPServer::HTTPServer(const HTTPServer &rk)
+  { (void) rk; }*/
 
 HTTPServer::~HTTPServer()
 {
+	SharedHTTPClientList::iterator	cit;
+	for (cit = mClients.begin(); cit != mClients.end(); cit++) {
+		(*cit)->close();
+	}
+	mSocket.close();
 	HTTPServerList::iterator		it;
 	for (it = Instances.begin(); it != Instances.end(); it++) {
 		if (*it == this) {
@@ -48,11 +70,11 @@ HTTPServer::~HTTPServer()
 	}
 }
 
-HTTPServer::ClientList			&HTTPServer::getClients() {
+HTTPServer::ClientList				&HTTPServer::getClients() {
 	return (mClients);
 }
 
-const HTTPServer::ClientList	&HTTPServer::getClients() const {
+const HTTPServer::ClientList		&HTTPServer::getClients() const {
 	return (mClients);
 }
 
@@ -64,11 +86,11 @@ void								HTTPServer::setPort(uint16_t p) throw() {
 }
 
 int									HTTPServer::shutdown() {
-	SharedHTTPClientList::iterator	it;
 	std::cout << "[+] Shutting down ..." << std::endl;
 	mShutdown = true;
-	for (it = mClients.begin(); it != mClients.end(); it++) {
-		(*it)->close();
+	SharedHTTPClientList::iterator	cit;
+	for (cit = mClients.begin(); cit != mClients.end(); cit++) {
+		(*cit)->close();
 	}
 	mSocket.close();
 	return (0);
@@ -82,18 +104,17 @@ int									HTTPServer::run()
 		throw std::runtime_error(mSocket.message());
 	}
 	while (!mShutdown) {
-		mSocket.accept(std::bind(&HTTPServer::onAccept,
-								 *this, std::placeholders::_1, std::placeholders::_2),
-					   std::bind(&HTTPServer::onReject,
-								 *this, std::placeholders::_1, std::placeholders::_2),
-					   std::bind(&HTTPServer::onGuard,
-								 *this, std::placeholders::_1, std::placeholders::_2),
-					   std::bind(&HTTPServer::onError,
-								 *this, std::placeholders::_1));
+		mSocket.accept(std::bind(server_accept,
+								 this, std::placeholders::_1, std::placeholders::_2),
+					   std::bind(server_reject,
+								 this, std::placeholders::_1, std::placeholders::_2),
+					   std::bind(server_guard,
+								 this, std::placeholders::_1, std::placeholders::_2),
+					   std::bind(server_error,
+								 this, std::placeholders::_1));
 	}
 	return (EXIT_SUCCESS);
 }
-
 
 void							HTTPServer::onSignal(int no) {
 	if (mVerbose) {
@@ -113,12 +134,12 @@ void							HTTPServer::_onSignal(int no) {
 
 void							HTTPServer::onAccept(SocketStream::ptr strm, sockaddr_in *addr) {
 	std::cout << "[+] Connection Accepted: " << *strm << std::endl;
-	short family = AF_INET;
-	std::string saddr("0.0.0.0");
-	uint16_t port(0);
+	short						family = AF_INET;
+	std::string					saddr("0.0.0.0");
+	uint16_t					port(0);
+	static char					buf[32] = { 0 };
 	if (addr) {
 		family = addr->sin_family;
-		static char buf[32] = { 0 };
 		inet_ntop(family, (void*)addr, &buf[0], 32);
 		saddr = std::string(&buf[0], &buf[0] + 32);
 		port = addr->sin_port;
@@ -127,7 +148,23 @@ void							HTTPServer::onAccept(SocketStream::ptr strm, sockaddr_in *addr) {
 														  family,
 														  saddr,
 														  port)));
-	std::cout << *mClients.back() << std::endl;
+	SharedHTTPClientPtr client(mClients.back());
+	pid_t pid = fork();
+	if (pid == 0) {
+		client->_setPID((int)pid);
+		serve(client);
+		std::cout << "[+] Done: " << *client << std::endl;
+		client->_setPID(0);
+		exit(0);
+	} else {
+		client->close();
+	}
+}
+
+void							HTTPServer::serve(SharedHTTPClientPtr client) {
+	std::cout << "[+] Spawned: " << *client << std::endl;
+	SocketStream &stream(*client->getStream());
+	stream << "HELLO!" << std::endl;
 }
 
 void							HTTPServer::onReject(SocketStream::ptr strm, sockaddr_in *addr) {

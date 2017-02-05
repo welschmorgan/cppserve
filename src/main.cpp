@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:28:39 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/05 16:20:32 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/05 19:36:06 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -16,8 +16,8 @@
 
 int	main(int argc, char *const argv[]) {
 	int code = EXIT_SUCCESS;
+	std::unique_ptr<HTTPServer> srv(new HTTPServer(argc, argv));
 	try {
-		HTTPServer *srv = new HTTPServer(argc, argv);
 		code = srv->run();
 	} catch (std::exception &e) {
 		std::cerr << "[-] " << e.what() << std::endl;

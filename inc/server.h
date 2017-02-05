@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/04 13:30:07 by mwelsch           #+#    #+#             */
-/*   Updated: 2017/02/05 17:56:56 by mwelsch          ###   ########.fr       */
+/*   Updated: 2017/02/05 19:41:04 by mwelsch          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ protected:
 
 public:
 	HTTPServer(int argc, char *const argv[]);
-	HTTPServer(const HTTPServer &rk);
+//	HTTPServer(const HTTPServer &rk);
 	virtual ~HTTPServer();
 
 	int									run();
@@ -50,6 +50,8 @@ public:
 
 	bool								isShuttingDown() const throw();
 	int									shutdown();
+
+	void								serve(SharedHTTPClientPtr client);
 
 	void								onSignal(int no);
 	void								onAccept(SocketStream::ptr strm, sockaddr_in *addr);

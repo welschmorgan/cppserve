@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/05 13:56:14 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/05 18:21:28 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/05 18:40:56 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@ protected:
 	short				mFamily;
 	std::string			mAddress;
 	uint16_t			mPort;
+	int					mPID;
 
 private:
 	HTTPClient(const HTTPClient &c);
@@ -36,6 +37,9 @@ public:
 	virtual ~HTTPClient();
 
 	operator std::string() const;
+
+	int					getPID() const;
+	void				_setPID(int pid);
 
 	short				getFamily() const;
 	std::string			getAddress() const;
@@ -51,6 +55,6 @@ public:
 
 typedef std::shared_ptr<HTTPClient> SharedHTTPClientPtr;
 
-std::ostream	&operator<<(std::ostream &os, const HTTPClient &);
+std::ostream			&operator<<(std::ostream &os, const HTTPClient &);
 
 #endif

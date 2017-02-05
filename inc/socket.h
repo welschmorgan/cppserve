@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/05 13:28:49 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/05 17:56:15 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/05 19:25:51 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -166,10 +166,11 @@ public:
 protected:
 	buf_type						buf;
 	std::string						msg;
+	int								timeout;
 
 public:
-	BasicSocketStream() : stream_type(&buf), msg() {}
-	BasicSocketStream(int s) : stream_type(&buf), msg() { buf.set_socket(s); }
+	BasicSocketStream(int timeout = 2) : stream_type(&buf), msg(), timeout(timeout) {}
+	BasicSocketStream(int s, int timeout = 2) : stream_type(&buf), msg(), timeout(timeout) { buf.set_socket(s); }
 
 	bool							open(const std::string& host, uint16_t port) {
 		close();
@@ -177,6 +178,8 @@ public:
 		sockaddr_in sin;
 		hostent *he = gethostbyname(host.c_str());
 		int code = errno;
+
+		setOptions(sd);
 
 		std::copy(reinterpret_cast<char*>(he->h_addr)
 				  , reinterpret_cast<char*>(he->h_addr) + he->h_length
@@ -198,22 +201,34 @@ public:
 		return (msg);
 	}
 
-	bool							setOption(int level, int name,
+	bool							setOption(int fd,
+											  int level, int name,
 											  void *val, socklen_t len) {
-		return (setsockopt(buf.get_socket(), level, name, val, len) < 0);
+		return (!setsockopt(fd, level, name, val, len));
 	}
 
 	bool							getOption(int level, int name,
 											  const void *val, socklen_t len) {
 		return (getsockopt(buf.get_socket(), level, name, val, len));
 	}
-
-	void							setOptions() throw(std::exception) {
+	void							setTimeout(int fd, int sec, int usec = 0) {
+		struct timeval to;
+		to.tv_sec = sec;
+		to.tv_usec = usec;
+		if (!setOption(fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&to, sizeof(timeval)))
+			throw std::runtime_error("failed to set option: SO_SNDTIMEO: " + std::string(strerror(errno)));
+		if (!setOption(fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&to, sizeof(timeval)))
+			throw std::runtime_error("failed to set option: SO_RCVTIMEO: " + std::string(strerror(errno)));
+	}
+	void							setOptions(int fd) throw(std::exception) {
 		int							enable = 1;
-		if (!setOption(SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)))
+		if (!setOption(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)))
 			throw std::runtime_error("failed to set option: SO_REUSEADDR: " + std::string(strerror(errno)));
-		if (!setOption(SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)))
+		if (!setOption(fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)))
 			throw std::runtime_error("failed to set option: SO_REUSEPORT: " + std::string(strerror(errno)));
+		if (timeout > 0) {
+			setTimeout(fd, timeout);
+		}
 	}
 
 	bool							listen(uint16_t port) {
@@ -232,7 +247,7 @@ public:
 			sin.sin_addr.s_addr = INADDR_ANY;
 			sin.sin_family = AF_INET;
 			sin.sin_port = htons(port);
-			setOptions();
+			setOptions(sd);
 			if(bind(sd, (struct sockaddr*)&sin, sizeof(sin)) < 0) {
 				ret = false;
 				code = errno;
@@ -273,7 +288,7 @@ public:
 				errorHandler(&cliAddr);
 				return (strm);
 			}
-			strm.reset(new BasicSocketStream(clientFd));
+			strm.reset(new BasicSocketStream(clientFd, 1));
 			if (guard(strm, &cliAddr)) {
 				acceptor(strm, &cliAddr);
 			} else {

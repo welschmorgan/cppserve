@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/05 13:55:48 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/05 18:28:53 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/05 18:50:12 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -20,6 +20,7 @@ HTTPClient::HTTPClient(SocketStream::ptr strm,
 	, mFamily(family)
 	, mAddress(addr)
 	, mPort(port)
+	, mPID(0)
 {
 }
 
@@ -35,6 +36,13 @@ HTTPClient::operator std::string() const {
 	str += std::to_string(mPort);
 	return (str);
 }
+int					HTTPClient::getPID() const {
+	return (mPID);
+}
+void				HTTPClient::_setPID(int pid) {
+	mPID = pid;
+}
+
 
 short				HTTPClient::getFamily() const {
 	return (mFamily);
@@ -48,7 +56,7 @@ uint16_t			HTTPClient::getPort() const {
 	return (mPort);
 }
 
-SocketStream::ptr		HTTPClient::getStream() const {
+SocketStream::ptr	HTTPClient::getStream() const {
 	return (mStream);
 }
 
@@ -61,7 +69,7 @@ void				HTTPClient::close() {
 	mStream->close();
 }
 
-std::ostream	&operator<<(std::ostream &os, const HTTPClient &c) {
+std::ostream		&operator<<(std::ostream &os, const HTTPClient &c) {
 	os << (const std::string)c;
 	return (os);
 }
