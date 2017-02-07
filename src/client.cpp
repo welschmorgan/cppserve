@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/05 13:55:48 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/05 18:50:12 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/07 21:54:13 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -48,8 +48,10 @@ short				HTTPClient::getFamily() const {
 	return (mFamily);
 }
 
-std::string			HTTPClient::getAddress() const {
-	return (mAddress);
+std::string			HTTPClient::getAddress(bool withPort) const {
+	std::string		ret(mAddress);
+	if (withPort) ret += ":" + std::to_string(mPort);
+	return (ret);
 }
 
 uint16_t			HTTPClient::getPort() const {
@@ -66,7 +68,10 @@ bool				HTTPClient::open(const std::string &host, uint16_t port) {
 }
 
 void				HTTPClient::close() {
-	mStream->close();
+	if (mStream && mStream->isOpen()) {
+		std::cout << "[+] Closing client socket " << *this << std::endl;
+		mStream->close();
+	}
 }
 
 std::ostream		&operator<<(std::ostream &os, const HTTPClient &c) {

@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/05 13:56:14 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/05 18:40:56 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/07 21:40:22 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ public:
 	void				_setPID(int pid);
 
 	short				getFamily() const;
-	std::string			getAddress() const;
+	std::string			getAddress(bool withPort = false) const;
 	uint16_t			getPort() const;
 
 	SocketStream::ptr	getStream() const;

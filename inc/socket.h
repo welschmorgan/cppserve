@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/05 13:28:49 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/05 19:25:51 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/07 21:50:27 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,6 +63,7 @@
 # include <istream>
 # include <ostream>
 # include <memory>
+# include <map>
 # include <iostream>
 
 # define MAX_HTTP_CLIENTS				100
@@ -149,6 +150,48 @@ protected:
 typedef BasicSocketBuffer<char>		SocketBuf;
 typedef BasicSocketBuffer<wchar_t>	WSocketBuf;
 
+class SocketStage {
+public:
+	typedef unsigned					Id;
+	typedef std::map<Id, std::string>	NameMap;
+
+	static const SocketStage			None;
+	static const SocketStage			Opened;
+	static const SocketStage			Closed;
+	static const SocketStage			Bound;
+	static const SocketStage			Listening;
+	static const SocketStage			Count;
+
+protected:
+	Id					data;
+
+public:
+	SocketStage(Id val = Id());
+	SocketStage(const SocketStage &);
+	~SocketStage();
+
+	SocketStage				&operator=(const SocketStage &);
+
+	bool					operator==(const SocketStage &) const;
+	bool					operator==(Id) const;
+
+	bool					operator!=(const SocketStage &) const;
+	bool					operator!=(Id) const;
+
+	static const NameMap	Names();
+
+	std::string				name() const;
+	Id						value() const;
+
+	operator				std::string() const;
+	operator				Id() const;
+protected:
+private:
+	friend std::ostream &operator<<(std::ostream &, const SocketStage &);
+};
+
+std::ostream &operator<<(std::ostream &, const SocketStage &);
+
 template<typename Char>
 class								BasicSocketStream
 : public std::basic_iostream<Char>
@@ -165,12 +208,23 @@ public:
 
 protected:
 	buf_type						buf;
+	SocketStage						stage;
 	std::string						msg;
 	int								timeout;
 
 public:
-	BasicSocketStream(int timeout = 2) : stream_type(&buf), msg(), timeout(timeout) {}
-	BasicSocketStream(int s, int timeout = 2) : stream_type(&buf), msg(), timeout(timeout) { buf.set_socket(s); }
+	BasicSocketStream(int timeout = 2)
+		: stream_type(&buf)
+		, stage()
+		, msg()
+		, timeout(timeout)
+		{}
+	BasicSocketStream(int s, int timeout = 2)
+		: stream_type(&buf)
+		, stage()
+		, msg()
+		, timeout(timeout)
+		{ buf.set_socket(s); }
 
 	bool							open(const std::string& host, uint16_t port) {
 		close();
@@ -192,11 +246,14 @@ public:
 			code = errno;
 		} else {
 			buf.set_socket(sd);
+			stage = SocketStage::Opened;
 		}
 		msg = strerror(errno);
 		return *this;
 	}
-
+	bool							isOpen() const {
+		return (stage != SocketStage::Closed && stage != SocketStage::None);
+	}
 	std::string						message() const {
 		return (msg);
 	}
@@ -229,6 +286,10 @@ public:
 		if (timeout > 0) {
 			setTimeout(fd, timeout);
 		}
+	}
+
+	SocketStage						getStage() const {
+		return (stage);
 	}
 
 	bool							listen(uint16_t port) {
@@ -265,6 +326,8 @@ public:
 			char *e = strerror(code);
 			msg += ":" + std::string(e, e + strlen(e));
 			stream_type::setstate(std::ios::failbit);
+		} else {
+			stage = SocketStage::Listening;
 		}
 		return (ret);
 	}
@@ -286,23 +349,23 @@ public:
 								&clientLen);
 			if (clientFd < 0) {
 				errorHandler(&cliAddr);
-				return (strm);
-			}
-			strm.reset(new BasicSocketStream(clientFd, 1));
-			if (guard(strm, &cliAddr)) {
-				acceptor(strm, &cliAddr);
 			} else {
-				rejector(strm, &cliAddr);
+				strm.reset(new BasicSocketStream(clientFd, 1));
+				if (guard(strm, &cliAddr)) {
+					acceptor(strm, &cliAddr);
+				} else {
+					rejector(strm, &cliAddr);
+				}
 			}
 		}
 		return (strm);
 	}
 
 	void							close() {
-		if (buf.get_socket() != 0) {
-			if (!::close(buf.get_socket())) {
-				buf.set_socket(0);
-			}
+		if (stage != SocketStage::Closed) {
+			::close(buf.get_socket());
+			buf.set_socket(0);
+			stage = SocketStage::Closed;
 		}
 		stream_type::clear();
 	}

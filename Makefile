@@ -6,7 +6,7 @@
 #    By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2017/02/04 13:52:33 by mwelsch           #+#    #+#              #
-#    Updated: 2017/02/05 13:57:23 by mwelsch          ###   ########.fr        #
+#    Updated: 2017/02/07 21:23:15 by mwelsch          ###   ########.fr        #
 #                                                                              #
 #******************************************************************************#
 
@@ -16,7 +16,7 @@ INC_DIR = ./inc
 SRC_DIR = ./src
 OBJ_DIR = ./obj
 
-SRCS = main.cpp server.cpp launch_options.cpp client.cpp
+SRCS = main.cpp server.cpp launch_options.cpp client.cpp socket.cpp
 OBJS = $(patsubst %,$(OBJ_DIR)/%,$(SRCS:%.cpp=%.o))
 
 CXX = clang++
