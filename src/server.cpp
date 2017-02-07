@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:43:08 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/05 19:57:46 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/05 20:07:54 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -165,6 +165,16 @@ void							HTTPServer::serve(SharedHTTPClientPtr client) {
 	std::cout << "[+] Spawned: " << *client << std::endl;
 	SocketStream &stream(*client->getStream());
 	stream << "HELLO!" << std::endl;
+	std::string data;
+	static char buf[1024] = {0};
+	std::string cwd(getcwd(&buf[0], 1024));
+	while (stream >> data) {
+		if (data == "GET") {
+			stream >> data;
+			std::cout << "* serving file: " << cwd << data << std::endl;
+		}
+		std::cout << data << std::endl;
+	}
 }
 
 void							HTTPServer::onReject(SocketStream::ptr strm, sockaddr_in *addr) {
