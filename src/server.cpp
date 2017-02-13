@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:43:08 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/12 20:37:20 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/13 20:31:38 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -57,6 +57,8 @@ HTTPServer::HTTPServer(int argc, char *const argv[])
 	static char buf[1024] = {0};
 	getcwd(&buf[0], 1024);
 	mLocator.setBaseDir(buf);
+	mLocator.addHandler(SharedResourceScanHandler(new StaticResourceHandler()));
+	mLocator.addHandler(SharedResourceScanHandler(new ACLResourceHandler()));
 	discoverLocations();
 }
 
@@ -255,40 +257,13 @@ static void						handle_access_control_file(Locator *self, StringList::iterator 
 	srv->getAccessList()->merge(acl);
 	std::cout << " found " << *it << std::endl;
 }
+
 static void					handle_static_file(Locator *self, StringList::iterator it, void *extra) {
 	std::cout << "[+] Serve static file: " << *it << std::endl;
 }
+
 void						HTTPServer::discoverLocations() {
-	mLocator.discover();
-	Locator::HandlerMap			handlers;
-	Locator::HandlerMap::iterator	ht;
-	StringList::iterator		it;
-	size_t						pos;
-	std::string					ext;
-	SharedStringList			files(mLocator.getFiles());
-
-	handlers["access"] = handle_access_control_file;
-
-	handlers["html"] = handle_static_file;
-	handlers["css"] = handle_static_file;
-	handlers["js"] = handle_static_file;
-	handlers["json"] = handle_static_file;
-
-	handlers["jpg"] = handle_static_file;
-	handlers["jpeg"] = handle_static_file;
-	handlers["gif"] = handle_static_file;
-	handlers["png"] = handle_static_file;
-
-	for (it = files->begin(); it != files->end(); it++) {
-		pos = it->find_last_of('.');
-		if (pos != std::string::npos && it->size() > 1) {
-			ext = it->substr(pos + 1, it->size() - (pos + 1));
-			ht = handlers.find(ext);
-			if (ht != handlers.end()) {
-				ht->second(&mLocator, it, (void *)this);
-			}
-		}
-	}
+	mLocator.discover(this);
 }
 
 void							HTTPServer::handleGetRequest(SharedHTTPClientPtr client,

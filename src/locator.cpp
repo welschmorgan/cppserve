@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/10 21:41:12 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/12 21:22:25 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/13 21:28:05 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -21,6 +21,7 @@ Locator::Locator(const std::string &base_dir)
 	, mFiles(new StringList())
 	, mErrors(new StringList())
 	, mHandlers()
+	, mExtra(NULL)
 {
 	if (!mBaseDir.empty() && mBaseDir[mBaseDir.size() - 1] == '/') {
 		mBaseDir.erase(mBaseDir.end() - 1);
@@ -32,6 +33,7 @@ Locator::Locator(const Locator &rk)
 	, mFiles(rk.mFiles)
 	, mErrors(rk.mErrors)
 	, mHandlers(rk.mHandlers)
+	, mExtra(rk.mExtra)
 {}
 Locator::~Locator()
 {}
@@ -43,7 +45,13 @@ Locator				&Locator::operator=(const Locator &rk)
 	mFiles = rk.mFiles;
 	mErrors = rk.mErrors;
 	mHandlers = rk.mHandlers;
+	mExtra = rk.mExtra;
 	return (*this);
+}
+
+SharedResourceScanHandler			Locator::addHandler(SharedResourceScanHandler h) {
+	mHandlers.push_back(h);
+	return (mHandlers.back());
 }
 
 void								Locator::setHandlers(const ResourceScanHandlerList &l) {
@@ -74,22 +82,45 @@ void				Locator::discoverFolder(const std::string &folder) {
 		if (name != "." && name != "..") {
 			if (ep->d_type != DT_DIR) {
 				mFiles->push_back(folder + "/" + name);
-				onFileAdded(mFiles->back());
+				onFileAdded(mFiles->end() - 1);
 			} else {
 				mFolders->push_back(folder + "/" + name);
-				onFolderAdded(mFolders->back());
+				onFolderAdded(mFiles->end() - 1);
 			}
 			if (ep->d_type == DT_DIR)
 				discoverFolder(folder + "/" + name);
 		}
 	}
 }
-void				Locator::onFileAdded(const std::string &path) {
 
+void				Locator::onFolderAdded(StringList::iterator str) {
 }
-void				Locator::onFolderAdded(const std::string &path) {
+
+void				Locator::onFileAdded(StringList::iterator str) {
+	ResourceScanHandlerList::iterator it;
+	SharedResourceScanHandler h;
+	for (it = mHandlers.begin(); it != mHandlers.end(); it++) {
+		h = *it;
+		std::cout << h->getName() << " should handle " << Path(*str).getBase() << " ? " << it->get()->shouldHandle(*str) << std::endl;
+		if (it->get()->shouldHandle(*str)) {
+			it->get()->handle(this, mFiles, str, mExtra);
+		}
+	}
 }
-void				Locator::discover() {
+
+void				*Locator::getExtra() {
+	return (mExtra);
+}
+const void			*Locator::getExtra() const {
+	return (mExtra);
+}
+void				Locator::setExtra(void *e) {
+	mExtra = e;
+}
+
+void				Locator::discover(void *extra) {
+	if (extra)
+		mExtra = extra;
 	discoverFolder(mBaseDir);
 }
 
@@ -134,8 +165,8 @@ void				Locator::clearFiles()
 
 
 ResourceScanHandler::ResourceScanHandler(const std::string &name,
-						const StringList &interests,
-						const Handler &handler)
+										 const StringList &interests,
+										 const Handler &handler)
 	: mName(name)
 	, mInterests(interests)
 	, mHandler(handler)
@@ -158,25 +189,25 @@ ResourceScanHandler			&ResourceScanHandler::operator=(const ResourceScanHandler 
 }
 
 void						ResourceScanHandler::operator()(Locator *locator,
-															StringList &strings,
+															SharedStringList strings,
 															StringList::iterator iter,
 															void *extra)
 {
-	mHandler(locator, strings, iter, extra);
+	handle(locator, strings, iter, extra);
 }
 
 bool						ResourceScanHandler::shouldHandle(const Path &filepath) const {
 	StringList::const_iterator	it;
 	bool						found(false);
 	for (it = mInterests.begin(); !found && it != mInterests.end(); it++) {
-		if (*it == filepath.get()) {
+		if (PatternMatch<std::string>(*it, filepath.getBase())) {
 			found = true;
 		}
 	}
 	return (found);
 }
 void						ResourceScanHandler::handle(Locator *locator,
-														StringList &strings,
+														SharedStringList strings,
 														StringList::iterator iter,
 														void *extra) {
 	mHandler(locator, strings, iter, extra);
@@ -209,16 +240,16 @@ ResourceScanHandler::Handler	&ResourceScanHandler::setHandler(const Handler &rk)
 StaticResourceHandler::StaticResourceHandler()
 	: ResourceScanHandler("Static")
 {
-	mInterests.push_back("html");
-	mInterests.push_back("css");
-	mInterests.push_back("js");
-	mInterests.push_back("json");
+	mInterests.push_back("*.html");
+	mInterests.push_back("*.css");
+	mInterests.push_back("*.js");
+	mInterests.push_back("*.json");
 
-	mInterests.push_back("jpg");
-	mInterests.push_back("jpeg");
-	mInterests.push_back("gif");
-	mInterests.push_back("png");
-	mInterests.push_back("bmp");
+	mInterests.push_back("*.jpg");
+	mInterests.push_back("*.jpeg");
+	mInterests.push_back("*.gif");
+	mInterests.push_back("*.png");
+	mInterests.push_back("*.bmp");
 }
 StaticResourceHandler::StaticResourceHandler(const StaticResourceHandler &rk)
 	: ResourceScanHandler(rk)
@@ -227,6 +258,22 @@ StaticResourceHandler::~StaticResourceHandler()
 {}
 
 StaticResourceHandler		&StaticResourceHandler::operator=(const StaticResourceHandler &rk) {
+	ResourceScanHandler::operator=(rk);
+	return (*this);
+}
+
+ACLResourceHandler::ACLResourceHandler()
+	: ResourceScanHandler("ACL")
+{
+	mInterests.push_back(".access");
+}
+ACLResourceHandler::ACLResourceHandler(const ACLResourceHandler &rk)
+	: ResourceScanHandler(rk)
+{}
+ACLResourceHandler::~ACLResourceHandler()
+{}
+
+ACLResourceHandler		&ACLResourceHandler::operator=(const ACLResourceHandler &rk) {
 	ResourceScanHandler::operator=(rk);
 	return (*this);
 }

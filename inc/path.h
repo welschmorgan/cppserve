@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/12 19:19:20 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/12 21:46:36 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/13 21:47:01 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,13 +17,37 @@
 # include <list>
 # include "serializer.h"
 
-template<typename StringT>
+template<typename T>
+bool		PatternMatch(const T &pattern,
+						 const T &input);
+
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
 class				BasicPath
-	: public Serializer<BasicPath<StringT>, StringT>
+	: public BasicSerializer<BasicPath<IStreamT,
+									   OStreamT,
+									   StringT,
+									   SStreamT>,
+						IStreamT,
+						OStreamT,
+						StringT,
+						SStreamT>
 {
 public:
-	BasicPath(const StringT &name);
-	BasicPath(const BasicPath &);
+	typedef BasicPath<IStreamT,
+					  OStreamT,
+					  StringT,
+					  SStreamT>				Self;
+	typedef BasicSerializer<Self,
+							IStreamT,
+							OStreamT,
+							StringT,
+							SStreamT>		Serializer;
+
+	BasicPath(const StringT &full = StringT());
+	BasicPath(const Self &);
 	virtual			~BasicPath();
 
 	BasicPath		&operator=(const BasicPath &);
@@ -32,15 +56,15 @@ public:
 	StringT			get() const;
 
 	StringT			getDir() const;
-	StringT			getBase() const;
+	StringT			getBase(bool withExt = true) const;
 	StringT			getExt() const;
 
 	StringT			&setDir(const StringT &rk);
 	StringT			&setBase(const StringT &rk);
 	StringT			&setExt(const StringT &rk);
 
-	std::ostream	&stringify(std::ostream &os) const;
-	std::istream	&parse(std::istream &is);
+	OStreamT		&stringify(OStreamT &os) const;
+	IStreamT		&parse(IStreamT &is);
 
 	bool			operator!=(const BasicPath &rk);
 	bool			operator==(const BasicPath &rk);
@@ -66,32 +90,64 @@ protected:
 	StringT			mExt;
 };
 
-typedef BasicPath<std::string> Path;
-typedef BasicPath<std::wstring> WPath;
+typedef BasicPath<std::istream, std::ostream,
+				  std::string, std::stringstream>	Path;
+typedef BasicPath<std::wistream, std::wostream,
+				  std::wstring, std::wstringstream>	WPath;
 
-template<typename StringT>
-BasicPath<StringT>::BasicPath(const StringT &full)
-	: mFull()
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+BasicPath<IStreamT,
+		  OStreamT,
+		  StringT,
+		  SStreamT>::BasicPath(const StringT &full)
+	: Serializer()
+	, mFull(full)
 	, mDir()
 	, mBase()
 	, mExt()
 {
-	parse(full);
+	Serializer::fromString(full);
 }
 
-template<typename StringT>
-BasicPath<StringT>::BasicPath(const BasicPath &rk)
-	: mFull(rk.mFull)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+BasicPath<IStreamT,
+		  OStreamT,
+		  StringT,
+		  SStreamT>::BasicPath(const BasicPath &rk)
+	: Serializer()
+	, mFull(rk.mFull)
 	, mDir(rk.mDir)
 	, mBase(rk.mBase)
 	, mExt(rk.mExt)
 {}
 
-template<typename StringT>
-BasicPath<StringT>::~BasicPath()
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+BasicPath<IStreamT,
+		  OStreamT,
+		  StringT,
+		  SStreamT>::~BasicPath()
 {}
-template<typename StringT>
-BasicPath<StringT>					&BasicPath<StringT>::operator=(const BasicPath &rk) {
+
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+BasicPath<IStreamT,
+		  OStreamT,
+		  StringT,
+		  SStreamT>					&BasicPath<IStreamT,
+											   OStreamT,
+											   StringT,
+											   SStreamT>::operator=(const BasicPath &rk) {
 	mFull = rk.mFull;
 	mDir = rk.mDir;
 	mBase = rk.mBase;
@@ -99,166 +155,363 @@ BasicPath<StringT>					&BasicPath<StringT>::operator=(const BasicPath &rk) {
 	return (*this);
 }
 
-template<typename StringT>
-StringT			&BasicPath<StringT>::set(const StringT &rk) {
-	parse(rk);
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+StringT			&BasicPath<IStreamT,
+						   OStreamT,
+						   StringT,
+						   SStreamT>::set(const StringT &rk) {
+	fromString(rk);
 	return (mFull);
 }
 
-template<typename StringT>
-StringT			BasicPath<StringT>::get() const {
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+StringT			BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::get() const {
 	return (operator StringT());
 }
 
-template<typename StringT>
-StringT			BasicPath<StringT>::getDir() const {
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+StringT			BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::getDir() const {
 	return (mDir);
 }
 
-template<typename StringT>
-StringT			BasicPath<StringT>::getBase() const {
-	return (mBase);
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+StringT			BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::getBase(bool withExt) const {
+	return (mBase + (withExt ? mExt : std::string()));
 }
 
-template<typename StringT>
-StringT			BasicPath<StringT>::getExt() const {
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+StringT			BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::getExt() const {
 	return (mExt);
 }
 
-template<typename StringT>
-StringT			&BasicPath<StringT>::setDir(const StringT &rk) {
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+StringT			&BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::setDir(const StringT &rk) {
 	mDir = rk;
 	return (mDir);
 }
 
-template<typename StringT>
-StringT			&BasicPath<StringT>::setBase(const StringT &rk) {
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+StringT			&BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::setBase(const StringT &rk) {
 	mBase = rk;
 	return (mBase);
 }
 
-template<typename StringT>
-StringT			&BasicPath<StringT>::setExt(const StringT &rk) {
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+StringT			&BasicPath<IStreamT,
+						   OStreamT,
+						   StringT,
+						   SStreamT>::setExt(const StringT &rk) {
 	mExt = rk;
 	return (mExt);
 }
 
-template<typename StringT>
-std::ostream				&BasicPath<StringT>::stringify(std::ostream &os) const {
-	if (os)
-		os << mFull;
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+OStreamT		&BasicPath<IStreamT,
+						   OStreamT,
+						   StringT,
+						   SStreamT>::stringify(OStreamT &os) const {
+	os << mFull;
 	return (os);
 }
 
-template<typename StringT>
-std::istream				&BasicPath<StringT>::parse(std::istream &is) {
-	if (is)
-		is >> mFull;
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+IStreamT		&BasicPath<IStreamT,
+						   OStreamT,
+						   StringT,
+						   SStreamT>::parse(IStreamT &is) {
+	is >> mFull;
 	return (is);
 }
 
-template<typename StringT>
-bool						BasicPath<StringT>::operator!=(const BasicPath &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool						BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator!=(const BasicPath &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator==(const BasicPath &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator==(const BasicPath &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator>(const BasicPath &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator>(const BasicPath &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator<(const BasicPath &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator<(const BasicPath &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator>=(const BasicPath &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator>=(const BasicPath &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator<=(const BasicPath &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator<=(const BasicPath &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
 
-template<typename StringT>
-bool					BasicPath<StringT>::operator==(const StringT &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator==(const StringT &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator!=(const StringT &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator!=(const StringT &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator>(const StringT &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+								  OStreamT,
+								  StringT,
+								  SStreamT>::operator>(const StringT &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator<(const StringT &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator<(const StringT &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator>=(const StringT &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator>=(const StringT &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
-template<typename StringT>
-bool					BasicPath<StringT>::operator<=(const StringT &rk)
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicPath<IStreamT,
+						  OStreamT,
+						  StringT,
+						  SStreamT>::operator<=(const StringT &rk)
 {
 	bool					ret(false);
 	return (ret);
 }
 
-template<typename StringT>
-typename StringT::value_type &BasicPath<StringT>::operator[](size_t offset) {
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+typename StringT::value_type &BasicPath<IStreamT,
+								  OStreamT,
+								  StringT,
+								  SStreamT>::operator[](size_t offset) {
 	return (at(offset));
 }
 
-template<typename StringT>
-typename StringT::value_type			BasicPath<StringT>::at(size_t offset) const {
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+typename StringT::value_type			BasicPath<IStreamT,
+								  OStreamT,
+								  StringT,
+								  SStreamT>::at(size_t offset) const {
 	return (mFull.at(offset));
 }
 
-template<typename StringT>
-typename StringT::value_type			&BasicPath<StringT>::at(size_t offset) {
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+typename StringT::value_type			&BasicPath<IStreamT,
+								  OStreamT,
+								  StringT,
+								  SStreamT>::at(size_t offset) {
 	return (mFull.at(offset));
 }
 
+template<typename T>
+bool		PatternMatch(const T &pattern,
+						 const T &input) {
+	typename T::const_iterator	a(pattern.begin());
+	typename T::const_iterator	nexta;
+	typename T::const_iterator	b(input.begin());
+	bool						ret(true);
+	if (pattern != T("*")) {
+		while (ret
+			   && a != pattern.end()
+			   && b != input.end()) {
+			if (*a == '*') {
+				nexta = a + 1;
+				while (b != input.end()) {
+					if (nexta == pattern.end()
+						|| *nexta == *b)
+						break ;
+					b++;
+				}
+				if (nexta == pattern.end())
+					break ;
+				a++;
+			} else if (*a != *b) {
+				ret = false;
+			}
+			a++;
+			b++;
+		}
+		if (a != pattern.end() || b != input.end())
+			ret = false;
+	}
+	std::cout << input << " == " << pattern << " -> " << ret << std::endl;
+	return (ret);
+}
 
-template<typename StringT,
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT,
 		 template <typename, typename>
 		 class ContainerT = std::list,
 		 template <typename>
 		 class AllocT = std::allocator>
 class PathList
-	: public ContainerT<BasicPath<StringT>,
-						AllocT<BasicPath<StringT> > >
+	: public ContainerT<BasicPath<IStreamT,
+								  OStreamT,
+								  StringT,
+								  SStreamT>,
+						AllocT<BasicPath<IStreamT,
+								  OStreamT,
+								  StringT,
+								  SStreamT> > >
 {
 public:
-	typedef ContainerT<BasicPath<StringT>,
-					   AllocT<BasicPath<StringT> > > Container;
+	typedef ContainerT<BasicPath<IStreamT,
+								  OStreamT,
+								  StringT,
+								  SStreamT>,
+					   AllocT<BasicPath<IStreamT,
+								  OStreamT,
+								  StringT,
+								  SStreamT> > > Container;
 	typedef typename Container::iterator iterator;
 	typedef typename Container::const_iterator const_iterator;
 	typedef typename Container::reverse_iterator reverse_iterator;

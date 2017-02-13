@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/12 18:29:24 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/12 21:13:09 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/13 21:37:36 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,9 @@ public:
 
 	virtual OStreamT				&stringify(OStreamT &os) const = 0;
 	virtual IStreamT				&parse(IStreamT &is) = 0;
+
+	virtual StringT					toString() const;
+	virtual bool					fromString(const StringT &s);
 
 	operator						StringT() const;
 
@@ -71,7 +74,7 @@ BasicSerializer<T, IStreamT, OStreamT, StringT, SStreamT>::operator		StringT() c
 	SStreamT					ss;
 	stringify(ss);
 	return (ss.str());
-		}
+}
 
 
 template<typename T,
@@ -93,5 +96,27 @@ template<typename T>
 using FileSerializer = Serializer<T, std::ifstream, std::ofstream>;
 template<typename T>
 using WFileSerializer = WSerializer<T, std::wifstream, std::wofstream>;
+
+template<typename T,
+		 typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+StringT					BasicSerializer<T, IStreamT, OStreamT, StringT, SStreamT>::toString() const {
+	SStreamT ss;
+	stringify(ss);
+	return (ss.str());
+}
+template<typename T,
+		 typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+bool					BasicSerializer<T, IStreamT, OStreamT, StringT, SStreamT>::fromString(const StringT &s) {
+	std::stringstream ss(s);
+	parse(ss);
+	return (ss.good());
+}
+
 
 #endif
