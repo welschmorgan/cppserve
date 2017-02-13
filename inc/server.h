@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/04 13:30:07 by mwelsch           #+#    #+#             */
-/*   Updated: 2017/02/07 21:44:25 by mwelsch          ###   ########.fr       */
+//   Updated: 2017/02/12 18:21:58 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,12 @@
 
 # include "launch_options.h"
 # include "client.h"
-
-typedef std::vector<std::string>		StringList;
+# include "address.h"
+# include "access_control.h"
+# include "locator.h"
+# include "stringlist.h"
+# include "request.h"
+# include "response.h"
 
 typedef std::list<SharedHTTPClientPtr>	SharedHTTPClientList;
 
@@ -35,10 +39,12 @@ protected:
 	LaunchOptions						mArgs;
 	SocketStream						mSocket;
 	uint16_t							mPort;
-	std::string							mBaseDir;
 	ClientList							mClients;
 	long								mVerbose;
 	bool								mShutdown;
+	Locator								mLocator;
+	SharedAccessControlList				mAccessList;
+	SharedHTTPResponse					mResponse;
 
 private:
 	HTTPServer(const HTTPServer &rk);
@@ -50,10 +56,14 @@ public:
 
 	int									run();
 
-	void								closeClients();
-	std::string							getBaseDir() const;
-	void								setBaseDir(const std::string &d);
+	void								discoverLocations();
 
+	const Locator						&getLocator() const;
+	Locator								&getLocator();
+
+
+	bool								checkAccessList(SharedHTTPClientPtr client);
+	void								closeClients();
 
 	uint16_t							getPort() const throw();
 	void								setPort(uint16_t p) throw();
@@ -62,16 +72,12 @@ public:
 	int									shutdown();
 
 	void								serve(SharedHTTPClientPtr client);
-
-	StringList							getMethods() const;
-
-	bool								isMethodName(const std::string &name);
-	void								parseRequest(SharedHTTPClientPtr client,
-													 const std::string &method,
-													 const std::string &uri,
-													 const std::string &proto);
+	void								handleGetRequest(SharedHTTPClientPtr client,
+														 const std::string &path);
 
 	void								dumpSocketStates(std::ostream &os) const;
+
+	SharedAccessControlList				getAccessList() const;
 
 	void								onSignal(int no);
 	void								onAccept(SocketStream::ptr strm, sockaddr_in *addr);

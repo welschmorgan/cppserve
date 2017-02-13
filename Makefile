@@ -6,7 +6,7 @@
 #    By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2017/02/04 13:52:33 by mwelsch           #+#    #+#              #
-#    Updated: 2017/02/07 21:23:15 by mwelsch          ###   ########.fr        #
+#    Updated: 2017/02/12 20:11:04 by mwelsch          ###   ########.fr        #
 #                                                                              #
 #******************************************************************************#
 
@@ -16,7 +16,10 @@ INC_DIR = ./inc
 SRC_DIR = ./src
 OBJ_DIR = ./obj
 
-SRCS = main.cpp server.cpp launch_options.cpp client.cpp socket.cpp
+SRCS = main.cpp server.cpp launch_options.cpp client.cpp socket.cpp \
+address.cpp locator.cpp access_control.cpp request.cpp response.cpp \
+status.cpp protocol.cpp cache.cpp
+TPLS = path.h stringlist.h stringmap.h
 OBJS = $(patsubst %,$(OBJ_DIR)/%,$(SRCS:%.cpp=%.o))
 
 CXX = clang++
@@ -29,6 +32,10 @@ $(TARGET): $(OBJS)
 	$(CXX) $(LDFLAGS) -o $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	mkdir -p $(OBJ_DIR)
+	$(CXX) $(CFLAGS) -o $@ -c $^
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.h
 	mkdir -p $(OBJ_DIR)
 	$(CXX) $(CFLAGS) -o $@ -c $^
 
