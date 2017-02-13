@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:28:39 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/13 21:41:38 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/13 22:06:32 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -21,10 +21,11 @@ int	main(int argc, char *const argv[]) {
 	PatternMatch<std::string>("h*.txt", "hellotxt");
 	PatternMatch<std::string>("*", "hellotxt");
 	*/
-	Path p("/hello/im/a/simple.path");
+	Path p(".asset");
 	std::cout << "dir: " << p.getDir() << std::endl;
 	std::cout << "base: " << p.getBase(false) << std::endl;
 	std::cout << "ext: " << p.getExt() << std::endl;
+	std::cout << "size: " << p.getSize() << std::endl;
 	return (0);
 	int code = EXIT_SUCCESS;
 	std::unique_ptr<HTTPServer> srv(new HTTPServer(argc, argv));

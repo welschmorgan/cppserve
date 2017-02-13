@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/12 19:19:20 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/13 21:47:01 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/13 22:09:30 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,6 +66,8 @@ public:
 	OStreamT		&stringify(OStreamT &os) const;
 	IStreamT		&parse(IStreamT &is);
 
+	size_t			getSize();
+
 	bool			operator!=(const BasicPath &rk);
 	bool			operator==(const BasicPath &rk);
 	bool			operator>(const BasicPath &rk);
@@ -88,6 +90,8 @@ protected:
 	StringT			mDir;
 	StringT			mBase;
 	StringT			mExt;
+	size_t			mSize;
+	bool			mSizeFound;
 };
 
 typedef BasicPath<std::istream, std::ostream,
@@ -108,6 +112,8 @@ BasicPath<IStreamT,
 	, mDir()
 	, mBase()
 	, mExt()
+	, mSize(0)
+	, mSizeFound(false)
 {
 	Serializer::fromString(full);
 }
@@ -125,6 +131,8 @@ BasicPath<IStreamT,
 	, mDir(rk.mDir)
 	, mBase(rk.mBase)
 	, mExt(rk.mExt)
+	, mSize(0)
+	, mSizeFound(false)
 {}
 
 template<typename IStreamT,
@@ -152,7 +160,27 @@ BasicPath<IStreamT,
 	mDir = rk.mDir;
 	mBase = rk.mBase;
 	mExt = rk.mExt;
+	mSize = rk.mSize;
+	mSizeFound = rk.mSizeFound;
 	return (*this);
+}
+template<typename IStreamT,
+		 typename OStreamT,
+		 typename StringT,
+		 typename SStreamT>
+size_t			BasicPath<IStreamT,
+						   OStreamT,
+						   StringT,
+						   SStreamT>::getSize() {
+	if (!mSizeFound) {
+		std::ifstream ifs(mFull, std::ifstream::binary);
+		if (ifs.is_open() && ifs.good()) {
+			ifs.seekg(0, std::ios_base::end);
+			mSize = ifs.tellg();
+		}
+		mSizeFound = true;
+	}
+	return (mSize);
 }
 
 template<typename IStreamT,
@@ -268,6 +296,18 @@ IStreamT		&BasicPath<IStreamT,
 						   StringT,
 						   SStreamT>::parse(IStreamT &is) {
 	is >> mFull;
+	size_t pos;
+	if ((pos = mFull.find_last_of('/')) != std::string::npos) {
+		mDir = mFull.substr(0, pos);
+		mBase = mFull.substr(pos + 1);
+	} else {
+		mDir = "";
+		mBase = mFull;
+	}
+	if ((pos = mBase.find_first_of('.')) != std::string::npos)
+		mExt = mBase.substr(pos);
+	else
+		mExt = "";
 	return (is);
 }
 
