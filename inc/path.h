@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/12 19:19:20 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/13 22:09:30 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/14 20:10:26 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -172,13 +172,18 @@ size_t			BasicPath<IStreamT,
 						   OStreamT,
 						   StringT,
 						   SStreamT>::getSize() {
+	std::cout << "Finding size: " << mFull;
 	if (!mSizeFound) {
 		std::ifstream ifs(mFull, std::ifstream::binary);
 		if (ifs.is_open() && ifs.good()) {
+			std::cout << "\topened" << std::endl;
 			ifs.seekg(0, std::ios_base::end);
 			mSize = ifs.tellg();
+			mSizeFound = true;
+		} else {
+			std:: cout << "\tfailed to open!" << std::endl;
 		}
-		mSizeFound = true;
+		std:: cout << "-> " << mSize << std::endl;
 	}
 	return (mSize);
 }
@@ -304,10 +309,12 @@ IStreamT		&BasicPath<IStreamT,
 		mDir = "";
 		mBase = mFull;
 	}
-	if ((pos = mBase.find_first_of('.')) != std::string::npos)
+	if ((pos = mBase.find_first_of('.')) != std::string::npos) {
 		mExt = mBase.substr(pos);
-	else
+		mBase = mBase.substr(0, pos);
+	} else {
 		mExt = "";
+	}
 	return (is);
 }
 
@@ -521,7 +528,6 @@ bool		PatternMatch(const T &pattern,
 		if (a != pattern.end() || b != input.end())
 			ret = false;
 	}
-	std::cout << input << " == " << pattern << " -> " << ret << std::endl;
 	return (ret);
 }
 

@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/11 02:31:10 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/12 17:35:35 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/14 20:13:46 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -54,24 +54,23 @@ bool			HTTPRequest::parse(SocketStream &is) {
 		return (false);
 	std::getline(is, mExtra);
 	while (std::getline(is, line)) {
-		std::cout << lineid << ": " << (!data ? "header: " : "body: ") << line << std::endl;
 		while (!line.empty() && (line.at(0) == ' ' || line.at(0) == '\t'))
 			line.erase(line.begin());
+		std::cout << lineid << ": " << (!data ? "header: " : "body: ") << line << std::endl;
+		if ((pos = line.find_first_of(':')) != std::string::npos) {
+			key = line.substr(0, pos);
+			val = line.substr(pos + 1);
+		} else {
+			key = line;
+			val = "";
+		}
 		if (line.empty()) {
 			data = true;
+		}
+		if (data) {
+			mBody->push_back(val);
 		} else {
-			if ((pos = line.find_first_of(':')) != std::string::npos) {
-				key = line.substr(0, pos);
-				val = line.substr(pos + 1);
-			} else {
-				key = line;
-				val = "";
-			}
-			if (data) {
-				mBody->push_back(val);
-			} else {
-				(*mHeaders)[key] = val;
-			}
+			(*mHeaders)[key] = val;
 		}
 		lineid++;
 	}

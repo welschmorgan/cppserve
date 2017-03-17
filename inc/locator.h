@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/10 21:25:56 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/13 20:30:37 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/14 20:03:48 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,6 +124,12 @@ public:
 	~StaticResourceHandler();
 
 	StaticResourceHandler		&operator=(const StaticResourceHandler &rk);
+
+protected:
+	void						work(Locator *locator,
+									 SharedStringList strings,
+									 StringList::iterator iter,
+									 void *extra);
 };
 
 class							ACLResourceHandler
@@ -135,6 +141,12 @@ public:
 	~ACLResourceHandler();
 
 	ACLResourceHandler		&operator=(const ACLResourceHandler &rk);
+
+protected:
+	void					work(Locator *locator,
+								 SharedStringList strings,
+								 StringList::iterator iter,
+								 void *extra);
 };
 
 #endif

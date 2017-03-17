@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/11 11:35:11 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/11 13:49:46 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/14 20:23:46 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,10 +16,11 @@
 # include "stringlist.h"
 # include "socket.h"
 # include "status.h"
+# include "protocol.h"
 
 class HTTPResponse {
 protected:
-	std::string			mProto;
+	HTTPProtocol		mProto;
 
 	bool				mAutoClose;
 	bool				mWritten;
@@ -29,7 +30,7 @@ protected:
 	std::string			mBody;
 
 public:
-	HTTPResponse(const std::string &proto = std::string(),
+	HTTPResponse(const HTTPProtocol &proto = HTTPProtocol(),
 				 bool autoClose = true);
 	HTTPResponse(const HTTPResponse &);
 	~HTTPResponse();
@@ -39,15 +40,14 @@ public:
 	void				setStatus(int code);
 	void				setHeader(const std::string &name,
 								  const std::string &value);
-	void				setProto(const std::string &proto);
 	void				setBody(const std::string &body);
 
 	int					getStatus(int code) const;
 	const StringMap		&getHeaders() const;
-	const std::string	&getProto() const;
+	const HTTPProtocol	&getProtocol() const;
 	const std::string	&getBody() const;
 
-	void				reset(const std::string &proto = std::string(),
+	void				reset(const HTTPProtocol &proto = HTTPProtocol(),
 							  int status = HTTPStatus::Success::Ok);
 	int					write(SocketStream &s);
 };

@@ -6,14 +6,14 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/11 11:41:12 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/11 13:49:59 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/14 20:27:12 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
 #include "response.h"
 #include <sstream>
 
-HTTPResponse::HTTPResponse(const std::string &proto,
+HTTPResponse::HTTPResponse(const HTTPProtocol &proto,
 						   bool autoClose)
 	: mProto(proto)
 	, mAutoClose(autoClose)
@@ -49,7 +49,7 @@ int					HTTPResponse::getStatus(int code) const
 { return (mStatus); }
 const StringMap		&HTTPResponse::getHeaders() const
 { return (mHeaders); }
-const std::string	&HTTPResponse::getProto() const
+const HTTPProtocol	&HTTPResponse::getProtocol() const
 { return (mProto); }
 const std::string	&HTTPResponse::getBody() const
 { return (mBody); }
@@ -68,11 +68,11 @@ void				HTTPResponse::setBody(const std::string &body)
 	mBody = body;
 }
 
-void				HTTPResponse::reset(const std::string &proto,
+void				HTTPResponse::reset(const HTTPProtocol &proto,
 										int status)
 {
 	mStatus = status;
-	if (!proto.empty())
+	if (!proto.stringify().empty())
 		mProto = proto;
 	mHeaders.clear();
 	mBody.clear();

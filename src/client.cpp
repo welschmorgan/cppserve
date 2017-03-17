@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/05 13:55:48 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/12 17:43:42 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/17 19:13:57 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -54,8 +54,10 @@ bool				HTTPClient::open(const std::string &host, uint16_t port) {
 }
 
 void				HTTPClient::close() {
-	if (mStream && mStream->isOpen()) {
-		std::cout << "[+] Closing client socket " << *this << std::endl;
+	if (mStream) {
+		if (mStream->isOpen()) {
+			std::cout << "[+] Closing client socket " << *this << std::endl;
+		}
 		mStream->close();
 	}
 }

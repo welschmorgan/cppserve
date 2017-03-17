@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/10 21:41:12 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/13 21:28:05 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/14 20:11:13 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -14,6 +14,8 @@
 
 # include <sys/types.h>
 # include <dirent.h>
+# include "access_control.h"
+# include "server.h"
 
 Locator::Locator(const std::string &base_dir)
 	: mBaseDir(base_dir)
@@ -63,7 +65,7 @@ ResourceScanHandlerList				&Locator::getHandlers() {
 const ResourceScanHandlerList		&Locator::getHandlers() const {
 	return (mHandlers);
 }
-SharedStringList	Locator::getErrors() const {
+SharedStringList					Locator::getErrors() const {
 	return (mErrors);
 }
 
@@ -101,9 +103,8 @@ void				Locator::onFileAdded(StringList::iterator str) {
 	SharedResourceScanHandler h;
 	for (it = mHandlers.begin(); it != mHandlers.end(); it++) {
 		h = *it;
-		std::cout << h->getName() << " should handle " << Path(*str).getBase() << " ? " << it->get()->shouldHandle(*str) << std::endl;
-		if (it->get()->shouldHandle(*str)) {
-			it->get()->handle(this, mFiles, str, mExtra);
+		if (h && h->shouldHandle(*str)) {
+			(*h)(this, mFiles, str, mExtra);
 		}
 	}
 }
@@ -236,10 +237,13 @@ ResourceScanHandler::Handler	&ResourceScanHandler::setHandler(const Handler &rk)
 	return (mHandler);
 }
 
+using namespace std::placeholders;
 
 StaticResourceHandler::StaticResourceHandler()
 	: ResourceScanHandler("Static")
 {
+	mHandler = std::bind(&StaticResourceHandler::work, this, _1, _2, _3, _4);
+
 	mInterests.push_back("*.html");
 	mInterests.push_back("*.css");
 	mInterests.push_back("*.js");
@@ -261,10 +265,25 @@ StaticResourceHandler		&StaticResourceHandler::operator=(const StaticResourceHan
 	ResourceScanHandler::operator=(rk);
 	return (*this);
 }
+void						StaticResourceHandler::work(Locator *locator,
+														SharedStringList strings,
+														StringList::iterator iter,
+														void *extra)
+{
+	AccessControlList			acl;
+	HTTPServer					*srv(reinterpret_cast<HTTPServer *>(extra));
+	std::ifstream				ifs(*iter);
+	if (!(ifs >> acl)) {
+		throw std::runtime_error(*iter + ": failed to parse acl!");
+	}
+	srv->getAccessList()->merge(acl);
+	std::cout << " found " << *iter << std::endl;
+}
 
 ACLResourceHandler::ACLResourceHandler()
 	: ResourceScanHandler("ACL")
 {
+	mHandler = std::bind(&ACLResourceHandler::work, this, _1, _2, _3, _4);
 	mInterests.push_back(".access");
 }
 ACLResourceHandler::ACLResourceHandler(const ACLResourceHandler &rk)
@@ -276,4 +295,18 @@ ACLResourceHandler::~ACLResourceHandler()
 ACLResourceHandler		&ACLResourceHandler::operator=(const ACLResourceHandler &rk) {
 	ResourceScanHandler::operator=(rk);
 	return (*this);
+}
+
+void					ACLResourceHandler::work(Locator *locator,
+												 SharedStringList strings,
+												 StringList::iterator iter,
+												 void *extra)
+{
+	std::cout << "[+] Serve static file: " << *iter << std::endl;
+}
+
+static void						handle_access_control_file(Locator *self, StringList::iterator it, void *extra) {
+}
+
+static void					handle_static_file(Locator *self, StringList::iterator it, void *extra) {
 }

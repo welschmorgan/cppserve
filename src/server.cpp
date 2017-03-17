@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:43:08 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/13 20:31:38 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/02/17 19:13:18 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -247,30 +247,15 @@ SharedAccessControlList			HTTPServer::getAccessList() const {
 	return (mAccessList);
 }
 
-static void						handle_access_control_file(Locator *self, StringList::iterator it, void *extra) {
-	AccessControlList			acl;
-	HTTPServer					*srv(reinterpret_cast<HTTPServer *>(extra));
-	std::ifstream				ifs(*it);
-	if (!(ifs >> acl)) {
-		throw std::runtime_error(*it + ": failed to parse acl!");
-	}
-	srv->getAccessList()->merge(acl);
-	std::cout << " found " << *it << std::endl;
-}
-
-static void					handle_static_file(Locator *self, StringList::iterator it, void *extra) {
-	std::cout << "[+] Serve static file: " << *it << std::endl;
-}
-
 void						HTTPServer::discoverLocations() {
 	mLocator.discover(this);
 }
 
 void							HTTPServer::handleGetRequest(SharedHTTPClientPtr client,
 															 const std::string &path) {
+	mResponse->reset(client->getRequest()->getProtocol());
 	if (mVerbose)
 		std::cout << "[+] serving file: " << path << std::endl;
-	mResponse->reset();
 	if (!checkAccessList(client)) {
 		mResponse->setStatus(HTTPStatus::Client::Unauthorized);
 		mResponse->setBody(HTTPStatus::CodeName(HTTPStatus::Client::Unauthorized));
