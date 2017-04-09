@@ -6,16 +6,16 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/10 21:41:12 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/14 20:11:13 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/09 20:55:35 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
 #include "locator.h"
-
-# include <sys/types.h>
-# include <dirent.h>
-# include "access_control.h"
-# include "server.h"
+#include <iomanip>
+#include <sys/types.h>
+#include <dirent.h>
+#include "access_control.h"
+#include "server.h"
 
 Locator::Locator(const std::string &base_dir)
 	: mBaseDir(base_dir)
@@ -165,18 +165,21 @@ void				Locator::clearFiles()
 
 
 
-ResourceScanHandler::ResourceScanHandler(const std::string &name,
+ResourceScanHandler::ResourceScanHandler(Locator *loc,
+										 const std::string &name,
 										 const StringList &interests,
 										 const Handler &handler)
 	: mName(name)
 	, mInterests(interests)
 	, mHandler(handler)
+	, mLocator(loc)
 {}
 
 ResourceScanHandler::ResourceScanHandler(const ResourceScanHandler &rk)
 	: mName(rk.mName)
 	, mInterests(rk.mInterests)
 	, mHandler(rk.mHandler)
+	, mLocator(rk.mLocator)
 {}
 ResourceScanHandler::~ResourceScanHandler()
 {}
@@ -186,7 +189,18 @@ ResourceScanHandler			&ResourceScanHandler::operator=(const ResourceScanHandler 
 	mName = rk.mName;
 	mInterests = rk.mInterests;
 	mHandler = rk.mHandler;
+	mLocator = rk.mLocator;
 	return (*this);
+}
+
+Locator						*ResourceScanHandler::getLocator() throw()
+{
+	return (mLocator);
+}
+
+const Locator				*ResourceScanHandler::getLocator() const throw()
+{
+	return (mLocator);
 }
 
 void						ResourceScanHandler::operator()(Locator *locator,
@@ -211,7 +225,8 @@ void						ResourceScanHandler::handle(Locator *locator,
 														SharedStringList strings,
 														StringList::iterator iter,
 														void *extra) {
-	mHandler(locator, strings, iter, extra);
+	if (mHandler)
+		mHandler(locator, strings, iter, extra);
 }
 
 const std::string			&ResourceScanHandler::getName() const {
@@ -239,8 +254,8 @@ ResourceScanHandler::Handler	&ResourceScanHandler::setHandler(const Handler &rk)
 
 using namespace std::placeholders;
 
-StaticResourceHandler::StaticResourceHandler()
-	: ResourceScanHandler("Static")
+StaticResourceHandler::StaticResourceHandler(Locator *loc)
+	: ResourceScanHandler(loc, "Static")
 {
 	mHandler = std::bind(&StaticResourceHandler::work, this, _1, _2, _3, _4);
 
@@ -270,18 +285,11 @@ void						StaticResourceHandler::work(Locator *locator,
 														StringList::iterator iter,
 														void *extra)
 {
-	AccessControlList			acl;
-	HTTPServer					*srv(reinterpret_cast<HTTPServer *>(extra));
-	std::ifstream				ifs(*iter);
-	if (!(ifs >> acl)) {
-		throw std::runtime_error(*iter + ": failed to parse acl!");
-	}
-	srv->getAccessList()->merge(acl);
 	std::cout << " found " << *iter << std::endl;
 }
 
-ACLResourceHandler::ACLResourceHandler()
-	: ResourceScanHandler("ACL")
+ACLResourceHandler::ACLResourceHandler(Locator *loc)
+	: ResourceScanHandler(loc, "ACL")
 {
 	mHandler = std::bind(&ACLResourceHandler::work, this, _1, _2, _3, _4);
 	mInterests.push_back(".access");
@@ -302,11 +310,120 @@ void					ACLResourceHandler::work(Locator *locator,
 												 StringList::iterator iter,
 												 void *extra)
 {
-	std::cout << "[+] Serve static file: " << *iter << std::endl;
+	AccessControlList			acl;
+	HTTPServer					*srv(reinterpret_cast<HTTPServer *>(extra));
+	std::ifstream				ifs(*iter);
+
+	std::cout << "[+] Loading access control file: " << *iter << std::endl;
+	if (!(ifs >> acl)) {
+		throw std::runtime_error(*iter + ": failed to parse acl!");
+	}
+	srv->getAccessList()->merge(acl);
 }
 
-static void						handle_access_control_file(Locator *self, StringList::iterator it, void *extra) {
+URITranslationHandler::URITranslationHandler(Locator *loc,
+											 const URITranslationMap *tr,
+											 URITranslationResultMap &res)
+	: ResourceScanHandler(loc, "URITranslation")
+	, mTranslations(tr)
+	, mResults(res)
+{
+	URITranslationMap::const_iterator it;
+	URITranslation::const_iterator jt;
+	mHandler = std::bind(&URITranslationHandler::work, this, _1, _2, _3, _4);
+	for (it = tr->begin(); it != tr->end(); it++)
+	{
+		mResults[it->first] = "";
+		for (jt = it->second.begin(); jt != it->second.end(); jt++)
+		{
+			mInterests.push_back(*jt);
+		}
+	}
+
 }
 
-static void					handle_static_file(Locator *self, StringList::iterator it, void *extra) {
+URITranslationHandler::URITranslationHandler(const URITranslationHandler &rk)
+	: ResourceScanHandler(rk)
+	, mTranslations(rk.mTranslations)
+	, mResults(rk.mResults)
+{}
+URITranslationHandler::~URITranslationHandler()
+{}
+
+URITranslationHandler	&URITranslationHandler::operator=(const URITranslationHandler &rk) {
+	ResourceScanHandler::operator=(rk);
+	mTranslations = rk.mTranslations;
+	mResults = rk.mResults;
+	return (*this);
+}
+
+void					URITranslationHandler::work(Locator *locator,
+												 SharedStringList strings,
+												 StringList::iterator iter,
+												 void *extra)
+{
+	URITranslationMap::const_iterator	trIt;
+	URITranslation::const_iterator		tryIt;
+	URITranslationResultMap::iterator	resIt(mResults.end());
+	Path								path(*iter);
+	std::string							base(path.getBase());
+
+	for (resIt = mResults.begin(); resIt != mResults.end(); resIt++)
+	{
+		if (resIt->second == base)
+		{
+			return ;
+		}
+	}
+	resIt = mResults.end();
+	for (trIt = mTranslations->begin(); trIt != mTranslations->end(); trIt++)
+	{
+		for (tryIt = trIt->second.begin(); tryIt != trIt->second.end(); tryIt++)
+		{
+			if (*tryIt == base)
+			{
+				resIt = mResults.find(trIt->first);
+				resIt->second = base;
+				break ;
+			}
+		}
+	}
+	if (resIt != mResults.end())
+	{
+		std::cout << "[+] Found uri translation '" << resIt->second << "' for '" << resIt->first << "'" << std::endl;
+	}
+}
+
+
+ETagHandler::ETagHandler(Locator *loc, ETagMap &tr)
+	: ResourceScanHandler(loc, "ETag")
+	, mTags(tr)
+{
+	mHandler = std::bind(&ETagHandler::work, this, _1, _2, _3, _4);
+	mInterests.push_back("*");
+}
+ETagHandler::ETagHandler(const ETagHandler &rk)
+	: ResourceScanHandler(rk)
+	, mTags(rk.mTags)
+{}
+ETagHandler::~ETagHandler()
+{}
+
+ETagHandler	&ETagHandler::operator=(const ETagHandler &rk) {
+	ResourceScanHandler::operator=(rk);
+	return (*this);
+}
+
+void					ETagHandler::work(Locator *locator,
+										  SharedStringList strings,
+										  StringList::iterator iter,
+										  void *extra)
+{
+/*	ETagHash			hasher;
+	std::string			path(*iter);
+	if (path.find(mLocator->getBaseDir()) != std::string::npos)
+		path = path.substr(mLocator->getBaseDir().size());
+	mTags[path] = std::to_string(hasher(path));
+	std::cout << "tag[" << *iter << "]: " << mTags[*iter] << std::endl;
+*/
 }

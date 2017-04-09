@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/12 18:22:01 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/12 18:57:56 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/09 20:10:40 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,49 +15,55 @@
 
 # include <string>
 # include <memory>
+# include <map>
 # include "serializer.h"
 
 class									CacheData
 	: public Serializer<CacheData>
 {
+private:
+	CacheData(const CacheData &rk);
+	CacheData							&operator=(const CacheData &rk);
+
 public:
 	CacheData();
 	CacheData(const std::string			&name,
 			  const std::string			&mimes,
-			  const size_t				size,
-			  const unsigned char		*data);
-	CacheData(const CacheData &rk);
+			  const std::stringbuf		*data);
 	virtual ~CacheData();
 
-	CacheData							&operator=(const CacheData &rk);
-
-	std::string							getName() const;
-	std::string							getMimeType() const;
-	size_t								getSize() const;
-	unsigned char						*getData() const;
+	const std::string					&getName() const throw();
+	const std::string					&getMimeType() const throw();
+	size_t								getSize() const throw();
+	const std::stringbuf				&getData() const throw();
 
 	std::string							&setName(const std::string &rk);
 	std::string							&setMimeType(const std::string &rk);
-	size_t								&setSize(const size_t rk);
-	unsigned char						*setData(const unsigned char *rk = NULL,
-												 const size_t size = 0);
+	std::stringbuf						&setData(const std::stringbuf &rk);
+
+	time_t								getAccessTime() const throw();
+	time_t								getCreationTime() const throw();
+	time_t								getModificationTime() const throw();
+
+	void								setAccessTime(time_t t) throw();
+	void								setCreationTime(time_t t) throw();
+	void								setModificationTime(time_t t) throw();
+
+	bool								isLoaded() const throw();
+	bool								load(const std::string &path);
+
 protected:
 	std::string							mName;
 	std::string							mMime;
-	size_t								mSize;
-	unsigned char						*mData;
+	std::stringbuf						mData;
+	time_t								mCreateTime;
+	time_t								mModTime;
+	time_t								mAccTime;
+	bool								mLoaded;
 
-	friend std::ostream					&operator<<(std::ostream &os,
-													CacheData &c);
-	friend std::istream					&operator<<(std::istream &is,
-													const CacheData &c);
 };
 
-extern std::ostream						&operator<<(std::ostream &os,
-													CacheData &c);
-extern std::istream						&operator<<(std::istream &is,
-													const CacheData &c);
-
-typedef std::shared_ptr<CacheData>		SharedCacheData;
+typedef std::shared_ptr<CacheData>				SharedCacheData;
+typedef std::map<std::string, SharedCacheData>	CacheDataMap;
 
 #endif

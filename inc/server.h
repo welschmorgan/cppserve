@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/04 13:30:07 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/12 18:21:58 by mwelsch          ###   ########.fr       //
+/*   Updated: 2017/04/08 16:20:19 by mwelsch          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,10 +24,10 @@
 # include "request.h"
 # include "response.h"
 
-typedef std::list<SharedHTTPClientPtr>	SharedHTTPClientList;
+typedef std::list<SharedHTTPClientPtr>			SharedHTTPClientList;
 
-class									HTTPServer;
-typedef std::list<HTTPServer*>			HTTPServerList;
+class											HTTPServer;
+typedef std::list<HTTPServer*>					HTTPServerList;
 
 class HTTPServer
 {
@@ -45,6 +45,9 @@ protected:
 	Locator								mLocator;
 	SharedAccessControlList				mAccessList;
 	SharedHTTPResponse					mResponse;
+	URITranslationMap					mTranslations;
+	URITranslationResultMap				mResults;
+	ETagMap								mTags;
 
 private:
 	HTTPServer(const HTTPServer &rk);
@@ -67,6 +70,9 @@ public:
 
 	uint16_t							getPort() const throw();
 	void								setPort(uint16_t p) throw();
+
+	const URITranslationMap				*getURITranslationMap() const;
+	std::string							translateURI(const std::string &uri);
 
 	bool								isShuttingDown() const throw();
 	int									shutdown();

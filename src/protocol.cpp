@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/12 16:48:29 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/12 17:42:57 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/08 11:13:58 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -111,7 +111,8 @@ HTTPProtocol		&HTTPProtocol::operator=(const HTTPProtocol &rk) {
 }
 
 std::istream		&operator>>(std::istream &is, HTTPProtocol &rk) {
-	rk.parse(is);
+	if (!rk.parse(is))
+		is.setstate(std::ios::failbit);
 	return (is);
 }
 std::ostream		&operator<<(std::ostream &os, const HTTPProtocol &rk) {

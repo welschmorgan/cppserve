@@ -6,11 +6,12 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/11 02:31:10 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/14 20:13:46 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/08 14:53:41 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
 #include "request.h"
+#include <algorithm>
 
 HTTPRequest::HTTPRequest(SharedStringMap	headers,
 						 SharedStringList	body,
@@ -47,33 +48,64 @@ HTTPRequest		&HTTPRequest::operator=(const HTTPRequest &rk) {
 bool			HTTPRequest::parse(SocketStream &is) {
 	std::string					line, key, val;
 	size_t						pos;
+	bool						headers = false;
 	bool						data = false;
 	size_t						lineid = 0;
 
 	if (!(is >> mProto))
 		return (false);
-	std::getline(is, mExtra);
-	while (std::getline(is, line)) {
+	std::cout << lineid << ": " << mProto << std::endl;
+	while (is.good()) {
+		std::getline(is, line);
 		while (!line.empty() && (line.at(0) == ' ' || line.at(0) == '\t'))
 			line.erase(line.begin());
-		std::cout << lineid << ": " << (!data ? "header: " : "body: ") << line << std::endl;
-		if ((pos = line.find_first_of(':')) != std::string::npos) {
-			key = line.substr(0, pos);
-			val = line.substr(pos + 1);
-		} else {
-			key = line;
-			val = "";
+		while (!line.empty() && line.at(line.size() - 1) == '\n')
+			line.erase(line.begin() + line.size() - 1);
+		if (line.empty() || !strncmp(line.c_str(), "\r", 2))
+		{
+			if (!headers)
+			{
+				std::cout << "header mode" << std::endl;
+				headers = true;
+			}
+			else if (!data)
+			{
+				if (mProto.getMethod() != "GET")
+				{
+					std::cout << "body mode" << std::endl;
+					data = true;
+				}
+				else
+				{
+					break ;
+				}
+			}
+			else
+			{
+				break ;
+			}
 		}
-		if (line.empty()) {
-			data = true;
-		}
-		if (data) {
-			mBody->push_back(val);
-		} else {
-			(*mHeaders)[key] = val;
+		else
+		{
+			std::cout << lineid << ": " << (!data ? "header: " : "body: ") << line << std::endl;
+			if ((pos = line.find_first_of(':')) != std::string::npos)
+			{
+				key = line.substr(0, pos);
+				val = line.substr(pos + 1);
+			}
+			else
+			{
+				key = line;
+				val = "";
+			}
+			if (data)
+				mBody->push_back(val);
+			else
+				(*mHeaders)[key] = val;
 		}
 		lineid++;
 	}
+	std::cout << lineid << ": " << "done reading client request!" << std::endl;
 	return (true);
 }
 
@@ -83,6 +115,38 @@ SharedStringMap		HTTPRequest::getHeaders() const {
 SharedStringList	HTTPRequest::getBody() const {
 	return (mBody);
 }
+
+std::string			HTTPRequest::getHeader(const std::string name,
+										   bool *found) const throw()
+{
+	*found = false;
+	std::string ret;
+	StringMap::const_iterator it;
+	std::string lname(name), lhname;
+	std::transform(lname.begin(), lname.end(), lname.begin(), ::tolower);
+	for (it = mHeaders->begin(); it != mHeaders->end(); it++)
+	{
+		lhname = it->first;
+		std::transform(lhname.begin(), lhname.end(), lhname.begin(), ::tolower);
+		if (lname == lhname)
+			break ;
+	}
+	if (it != mHeaders->end())
+	{
+		ret = it->second;
+		*found = true;
+	}
+	return (ret);
+}
+
+bool				HTTPRequest::hasHeader(const std::string name) const throw()
+{
+	bool			found(false);
+	getHeader(name, &found);
+	return (found);
+}
+
+
 std::string			HTTPRequest::getURI() const {
 	return (mProto.getURI());
 }

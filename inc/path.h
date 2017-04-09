@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/12 19:19:20 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/14 20:10:26 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/08 16:48:26 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -504,6 +504,7 @@ bool		PatternMatch(const T &pattern,
 	typename T::const_iterator	nexta;
 	typename T::const_iterator	b(input.begin());
 	bool						ret(true);
+	//std::cout << "pattern '" << pattern << "' matches '" << input << "' ?" << std::endl;
 	if (pattern != T("*")) {
 		while (ret
 			   && a != pattern.end()

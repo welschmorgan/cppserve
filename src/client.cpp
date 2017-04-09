@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/05 13:55:48 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/17 19:13:57 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/08 11:51:52 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -34,6 +34,12 @@ HTTPClient::operator std::string() const {
 void				HTTPClient::parseRequest() {
 	mRequest->parse(*mStream);
 }
+
+HTTPProtocol		HTTPClient::getProtocol() const
+{
+	return (mRequest->getProtocol());
+}
+
 int					HTTPClient::getPID() const {
 	return (mPID);
 }

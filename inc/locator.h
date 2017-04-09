@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/10 21:25:56 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/14 20:03:48 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/09 20:51:14 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,13 +81,17 @@ class							ResourceScanHandler {
 public:
 	typedef Locator::Handler	Handler;
 
-	ResourceScanHandler(const std::string &name,
+	ResourceScanHandler(Locator *loc,
+						const std::string &name,
 						const StringList &interests = StringList(),
 						const Handler &h = Handler());
 	ResourceScanHandler(const ResourceScanHandler &);
 	virtual ~ResourceScanHandler();
 
 	ResourceScanHandler			&operator=(const ResourceScanHandler &rk);
+
+	Locator						*getLocator() throw();
+	const Locator				*getLocator() const throw();
 
 	void						operator()(Locator *,
 										   SharedStringList ,
@@ -113,13 +117,14 @@ protected:
 	std::string					mName;
 	StringList					mInterests;
 	Handler						mHandler;
+	Locator						*mLocator;
 };
 
 class							StaticResourceHandler
 	: public ResourceScanHandler
 {
 public:
-	StaticResourceHandler();
+	StaticResourceHandler(Locator *loc);
 	StaticResourceHandler(const StaticResourceHandler &);
 	~StaticResourceHandler();
 
@@ -132,11 +137,61 @@ protected:
 									 void *extra);
 };
 
+typedef std::vector<std::string>				URITranslation;
+typedef std::map<std::string, URITranslation>	URITranslationMap;
+typedef std::map<std::string, std::string>		URITranslationResultMap;
+
+class							URITranslationHandler
+	: public ResourceScanHandler
+{
+public:
+	URITranslationHandler(Locator *loc,
+						  const URITranslationMap *tr,
+						  URITranslationResultMap &res);
+	URITranslationHandler(const URITranslationHandler &);
+	~URITranslationHandler();
+
+	URITranslationHandler		&operator=(const URITranslationHandler &rk);
+
+protected:
+	void						work(Locator *locator,
+									 SharedStringList strings,
+									 StringList::iterator iter,
+									 void *extra);
+
+	const URITranslationMap	*mTranslations;
+	URITranslationResultMap	&mResults;
+};
+
+typedef std::string								ETag;
+typedef std::hash<std::string>					ETagHash;
+typedef std::map<std::string, ETag>				ETagMap;
+
+class											ETagHandler
+	: public ResourceScanHandler
+{
+public:
+	ETagHandler(Locator *loc,
+				ETagMap &tags);
+	ETagHandler(const ETagHandler &);
+	~ETagHandler();
+
+	ETagHandler									&operator=(const ETagHandler &rk);
+
+protected:
+	void										work(Locator *locator,
+													 SharedStringList strings,
+													 StringList::iterator iter,
+													 void *extra);
+
+	ETagMap										&mTags;
+};
+
 class							ACLResourceHandler
 	: public ResourceScanHandler
 {
 public:
-	ACLResourceHandler();
+	ACLResourceHandler(Locator *loc);
 	ACLResourceHandler(const ACLResourceHandler &);
 	~ACLResourceHandler();
 

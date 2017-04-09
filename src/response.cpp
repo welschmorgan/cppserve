@@ -6,12 +6,15 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/11 11:41:12 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/14 20:27:12 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/08 14:31:56 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
 #include "response.h"
 #include <sstream>
+#include <iostream>
+#include <ctime>
+#include <iomanip>
 
 HTTPResponse::HTTPResponse(const HTTPProtocol &proto,
 						   bool autoClose)
@@ -80,26 +83,19 @@ void				HTTPResponse::reset(const HTTPProtocol &proto,
 
 int					HTTPResponse::write(SocketStream &strm)
 {
-	std::string codestr = std::to_string(mStatus) + " OK";
-	std::string lastModif = "Wed, 18 Jun 2003 16:05:58 GMT";
-	std::string etag = "56d-9989200-1132c580";
-	std::string ctype = "text/html";
-	std::string date = "Thu, 19 Feb 2009 12:27:04 GMT";
-	std::string servName = "Apache/2.2.3";
-	std::stringstream ss;
-	ss << mProto << " " << codestr << "\n"
-	   << "\n"
-	   << "Date: " << date << "\n"
-	   << "Server: " << servName << "\n"
-	   << "Last-Modified: " << lastModif << "\n"
-	   << "ETag: \"" << etag << "\"\n"
-	   << "Content-Type: " << ctype << "\n"
-	   << "Content-Length: 15" << "\n"
-	   << "Accept-Ranges: bytes" << "\n"
-	   << "Connection: close" << "\n"
-	   << "\n"
+	std::stringstream	ss;
+	std::string			endl("\r\n");
+	std::string			codestr = std::to_string(mStatus) + " OK";
+
+	ss << mProto.getVersion() << " " << codestr << endl;
+	for (StringMap::iterator it = mHeaders.begin(); it != mHeaders.end(); it++)
+		ss << it->first << ": " << it->second << endl;
+	ss << endl
 	   << mBody;
-	std::cout << ss.str() << std::endl;
+	std::cout << "Response:" << std::endl
+			  << std::string(10, '-') << std::endl
+			  << ss.str() << std::endl;
 	strm << ss.str();
+	strm.sync();
 	return (mStatus);
 }

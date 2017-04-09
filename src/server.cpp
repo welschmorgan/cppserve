@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:43:08 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/17 19:13:18 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/09 20:59:33 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -17,8 +17,36 @@
 #include <sstream>
 #include <signal.h>
 #include <arpa/inet.h>
+#include "logger.hpp"
 
 HTTPServerList					HTTPServer::Instances = HTTPServerList();
+
+
+static std::string	GetTime()
+{
+	time_t			rawtime;
+	struct tm *		timeinfo;
+	char			buffer[80];
+
+	time (&rawtime);
+	timeinfo = localtime (&rawtime);
+
+	strftime (buffer, 80, "%c %Z", timeinfo);
+	return (buffer);
+}
+
+static std::string	&TrimQuotes(std::string &str)
+{
+	while (!str.empty() && (str.at(0) == ' ' || str.at(0) == '\r' || str.at(0) == '\n' || str.at(0) == '\t'))
+		str.erase(str.begin());
+	while (!str.empty() && (str.at(str.size() - 1) == ' ' || str.at(str.size() - 1) == '\t' || str.at(str.size() - 1) == '\r' || str.at(str.size() - 1) == '\n'))
+		str.erase(str.begin() + (str.size() - 1));
+	if (!str.empty() && str.at(0) == '"')
+		str.erase(str.begin());
+	if (!str.empty() && str.at(str.size() - 1) == '"')
+		str.erase(str.begin() + (str.size() - 1));
+	return (str);
+}
 
 static void						option_verbose(HTTPServer *serv) {
 	serv->setVerbose(true);
@@ -47,6 +75,8 @@ HTTPServer::HTTPServer(int argc, char *const argv[])
 	, mLocator()
 	, mAccessList(new AccessControlList())
 	, mResponse(new HTTPResponse())
+	, mTranslations()
+	, mResults()
 {
 	Instances.push_back(this);
 	HTTPStatus::init();
@@ -56,9 +86,15 @@ HTTPServer::HTTPServer(int argc, char *const argv[])
 	mArgs.parse();
 	static char buf[1024] = {0};
 	getcwd(&buf[0], 1024);
+
+	mTranslations["/"] = URITranslation{ "index.html", "index.php", "index.js" };
+
 	mLocator.setBaseDir(buf);
-	mLocator.addHandler(SharedResourceScanHandler(new StaticResourceHandler()));
-	mLocator.addHandler(SharedResourceScanHandler(new ACLResourceHandler()));
+	mLocator.addHandler(SharedResourceScanHandler(new StaticResourceHandler(&mLocator)));
+	mLocator.addHandler(SharedResourceScanHandler(new URITranslationHandler(&mLocator,
+													  &mTranslations, mResults)));
+	mLocator.addHandler(SharedResourceScanHandler(new ETagHandler(&mLocator, mTags)));
+	mLocator.addHandler(SharedResourceScanHandler(new ACLResourceHandler(&mLocator)));
 	discoverLocations();
 }
 
@@ -247,37 +283,109 @@ SharedAccessControlList			HTTPServer::getAccessList() const {
 	return (mAccessList);
 }
 
-void						HTTPServer::discoverLocations() {
+void							HTTPServer::discoverLocations() {
 	mLocator.discover(this);
 }
 
 void							HTTPServer::handleGetRequest(SharedHTTPClientPtr client,
 															 const std::string &path) {
-	mResponse->reset(client->getRequest()->getProtocol());
+	std::ifstream		ifs;
+	std::stringstream	content;
+	std::string			line(255, 0);
+	std::string			etagValue("");
+	bool				foundEtagVerif(false);
+	SharedHTTPRequest	req(client->getRequest());
+	HTTPProtocol		proto(req->getProtocol());
+	std::string			lastEtagValue(req->getHeader("If-None-Match",
+													 &foundEtagVerif));
 	if (mVerbose)
 		std::cout << "[+] serving file: " << path << std::endl;
-	if (!checkAccessList(client)) {
+	TrimQuotes(lastEtagValue);
+	if (!checkAccessList(client))
+	{
 		mResponse->setStatus(HTTPStatus::Client::Unauthorized);
-		mResponse->setBody(HTTPStatus::CodeName(HTTPStatus::Client::Unauthorized));
-	} else {
-		mResponse->setStatus(HTTPStatus::Success::Ok);
-		mResponse->setBody(HTTPStatus::CodeName(HTTPStatus::Success::Ok));
+		content << HTTPStatus::CodeName(HTTPStatus::Client::Unauthorized) << std::endl;
 	}
-	client->writeResponse(mResponse);
+	else
+	{
+		etagValue = mTags[path];
+		std::cout << "cur_etag(" << path << "): " << etagValue << ", last_etag: " << lastEtagValue << std::endl;
+		if (foundEtagVerif && etagValue == lastEtagValue)
+			mResponse->setStatus(HTTPStatus::Redirect::NotModified);
+		else
+		{
+			std::cout << "open file " << path << std::endl;
+			ifs.open(path);
+			if (!ifs)
+			{
+				mResponse->setStatus(HTTPStatus::Client::NotFound);
+				content << "The requested URI wasn't found!" << std::endl;
+			}
+			else
+			{
+				while (ifs >> line)
+					content << line << std::endl;
+				ifs.close();
+				std::hash<std::string> hasher;
+				etagValue = std::to_string(hasher(content.str()));
+				mResponse->setStatus(HTTPStatus::Success::Ok);
+			}
+		}
+	}
+	mResponse->setBody(content.str());
+	mTags[path] = etagValue;
+	mResponse->setHeader("ETag", "\"" + mTags[path] + "\"");
 }
 
-void							HTTPServer::serve(SharedHTTPClientPtr client) {
-	SocketStream &stream(*client->getStream());
-	std::string filePath;
-	if (mVerbose) {
-		std::cout << "[+] Spawned: " << *client << std::endl;
-	}
-	client->parseRequest();
-	if (client->getRequest()->getMethod() == "GET") {
-		handleGetRequest(client, filePath);
-	}
-	client->close();
 
+void							HTTPServer::serve(SharedHTTPClientPtr client) {
+	SocketStream				&stream(*client->getStream());
+	std::string					filePath;
+	std::string					lastModif = "Wed, 18 Jun 2003 16:05:58 GMT";
+	std::string					ctype = "text/html";
+	std::string					servName = "Apache/2.2.3";
+
+
+	try {
+		if (mVerbose)
+			std::cout << "[+] Serving: " << *client << std::endl;
+		client->parseRequest();
+		mResponse->reset(client->getRequest()->getProtocol());
+		mResponse->setHeader("Date", GetTime());
+		mResponse->setHeader("Server" , servName);
+		mResponse->setHeader("Last-Modified" , lastModif);
+		mResponse->setHeader("Content-Type", ctype);
+		mResponse->setHeader("Accept-Ranges", "bytes");
+		mResponse->setHeader("Connection", "Close");
+
+		if (client->getRequest()->getMethod() == "GET")
+		{
+			filePath = translateURI(client->getRequest()->getProtocol().getURI());
+			if (filePath.empty())
+				filePath = client->getRequest()->getProtocol().getURI();
+			handleGetRequest(client, filePath);
+		}
+	} catch (std::exception &ex) {
+		mResponse->setStatus(HTTPStatus::Server::InternalError);
+		mResponse->setBody(ex.what());
+		std::cerr << ex.what() << std::endl;
+	}
+	mResponse->setHeader("Content-Length", std::to_string(mResponse->getBody().size()));
+	client->writeResponse(mResponse);
+	client->close();
+}
+
+const URITranslationMap			*HTTPServer::getURITranslationMap() const {
+	return (&mTranslations);
+}
+
+std::string						HTTPServer::translateURI(const std::string &uri)
+{
+	URITranslationResultMap::const_iterator	it;
+	std::string								ret;
+	if ((it = mResults.find(uri)) != mResults.end())
+		ret = it->second;
+	return (ret);
 }
 
 void							HTTPServer::onReject(SocketStream::ptr strm, sockaddr_in *addr) {

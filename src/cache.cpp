@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/12 18:22:14 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/12 19:00:25 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/09 20:12:36 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -17,54 +17,75 @@ CacheData::CacheData()
 	: Serializer<CacheData>()
 	, mName()
 	, mMime()
-	, mSize(0)
 	, mData(NULL)
+	, mModTime()
+	, mLoaded(false)
 {}
-CacheData::CacheData(const std::string			&name,
-					 const std::string			&mimes,
-					 const size_t				size,
-					 const unsigned char		*data)
-	: Serializer<CacheData>()
-	, mName(name)
-	, mMime(mimes)
-	, mSize(0)
-	, mData(NULL)
-{
-	setData(data, size);
-}
-CacheData::CacheData(const CacheData &rk)
-	: Serializer<CacheData>()
-	, mName(rk.mName)
-	, mMime(rk.mMime)
-	, mSize(0)
-	, mData(NULL)
-{
-	setData(rk.mData, rk.mSize);
-}
 CacheData::~CacheData()
 {
-	setData(NULL, 0);
 }
 
-CacheData							&CacheData::operator=(const CacheData &rk)
+bool								CacheData::isLoaded() const throw()
+{ return (mLoaded); }
+
+time_t								CacheData::getCreationTime() const throw()
 {
-
-	mName = rk.mName;
-	mMime = rk.mMime;
-	setData(rk.mData, rk.mSize);
-	return (*this);
+	return (mCreateTime);
 }
 
-std::string							CacheData::getName() const {
+time_t								CacheData::getModificationTime() const throw()
+{
+	return (mModTime);
+}
+
+time_t								CacheData::getAccessTime() const throw()
+{
+	return (mAccTime);
+}
+
+bool								CacheData::load(const std::string &path)
+{
+	if (mLoaded)
+		return (true);
+	mName = path;
+	std::ifstream ifs(mName, std::ios::in);
+	if (!ifs)
+		return (false);
+	std::ostream os(&mData);
+	std::string line;
+	while (std::getline(ifs, line))
+		os << line << std::endl;
+	mLoaded = true;
+	time(&mCreateTime);
+	time(&mModTime);
+	time(&mAccTime);
+	return (mLoaded);
+}
+
+void								CacheData::setAccessTime(time_t t) throw()
+{
+	mAccTime = t;
+}
+void								CacheData::setCreationTime(time_t t) throw()
+{
+	mCreateTime = t;
+}
+void								CacheData::setModificationTime(time_t t) throw()
+{
+	mModTime = t;
+}
+
+
+const std::string					&CacheData::getName() const throw() {
 	return (mName);
 }
-std::string							CacheData::getMimeType() const {
+const std::string					&CacheData::getMimeType() const throw() {
 	return (mMime);
 }
-size_t								CacheData::getSize() const {
-	return (mSize);
+size_t								CacheData::getSize() const throw() {
+	return (mData.str().size());
 }
-unsigned char						*CacheData::getData() const {
+const std::stringbuf				&CacheData::getData() const throw() {
 	return (mData);
 }
 
@@ -76,22 +97,3 @@ std::string							&CacheData::setMimeType(const std::string &rk) {
 	mMime = rk;
 	return (mMime);
 }
-unsigned char						*CacheData::setData(const unsigned char *data,
-														size_t size) {
-	if (mData)
-		delete []mData;
-	mData = NULL;
-	if (data && size) {
-		mData = new unsigned char [size];
-		if (mData) {
-			memcpy(mData, data, size);
-		}
-	}
-	return (mData);
-}
-
-
-std::ostream						&operator<<(std::ostream &os,
-												CacheData &c);
-std::istream						&operator<<(std::istream &is,
-												const CacheData &c);

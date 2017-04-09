@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/05 13:56:14 by mwelsch           #+#    #+#             */
-/*   Updated: 2017/02/12 17:18:58 by mwelsch          ###   ########.fr       */
+/*   Updated: 2017/04/08 11:51:20 by mwelsch          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,7 @@ public:
 	void								parseRequest(const std::string &method,
 													 const std::string &uri,
 													 const std::string &proto);
+	HTTPProtocol		getProtocol() const;
 
 	int					getPID() const;
 	void				_setPID(int pid);

@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/11 02:31:05 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/12 17:34:49 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/08 14:50:40 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,11 @@ public:
 	~HTTPRequest();
 
 	HTTPRequest			&operator=(const HTTPRequest &rk);
+
+	std::string			getHeader(const std::string name,
+								  bool *found = NULL) const throw();
+
+	bool				hasHeader(const std::string name) const throw();
 
 	SharedStringMap		getHeaders() const;
 	SharedStringList	getBody() const;
