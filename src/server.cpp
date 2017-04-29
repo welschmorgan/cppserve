@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:43:08 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/23 17:06:19 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/29 19:54:15 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -278,7 +278,7 @@ void								HTTPServer::setPort(uint16_t p) throw() {
 }
 
 int									HTTPServer::shutdown() {
-	if (mStarted)
+	if (mStarted && !mShutdown)
 	{
 		if (mLogger->level() >= LL_NORMAL) {
 			dumpSocketStates(mLogger->stream());
@@ -292,7 +292,6 @@ int									HTTPServer::shutdown() {
 
 void								HTTPServer::dumpSocketStates(std::ostream &os) const {
 	SharedHTTPClientList::const_iterator it;
-	//os << "address" << "\t" << "stage" << std::endl;
 	for (it = mClients.begin(); it != mClients.end(); it++) {
 		os << (*it)->getAddress() << "\t" << (*it)->getStream()->getStage() << std::endl;
 	}
@@ -300,7 +299,7 @@ void								HTTPServer::dumpSocketStates(std::ostream &os) const {
 
 void								HTTPServer::onSignal(int no) {
 	(*mLogger) << "[+] Caught: " << no << std::endl;
-	if (no == SIGINT) {
+	if (no == SIGINT || no == SIGTERM || no == SIGQUIT) {
 		shutdown();
 		//exit(0);
 	}
