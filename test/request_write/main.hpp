@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/04/29 16:04:33 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/29 19:03:28 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/29 19:40:59 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -157,6 +157,7 @@ public:
 		else
 		{ // parent
 			close(m_pipefd[1]);
+			sleep(1);
 			while ((code = waitpid(m_pid, &m_status, WNOHANG)) <= 0)
 			{
 				usleep(300);
@@ -264,8 +265,8 @@ public:
 		if (sock.open(inst->address().name(), inst->address().port()))
 		{
 			inst->state(STATE_CONNECTED);
-			usleep(300);
 			sock << "EHLLO" << std::endl;
+			usleep(300);
 			while (sock)
 			{
 				std::getline(sock, line);
@@ -287,7 +288,6 @@ public:
 			inst->log() << "failed";
 		}
 		inst->ping_count(inst->ping_count() + 1);
-		usleep(300);
 	}
 
 	static launcher<string_t, stream_t>	*instance() {
