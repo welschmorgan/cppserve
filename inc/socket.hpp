@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/05 13:28:49 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/05 19:25:51 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/29 19:16:36 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,20 +53,28 @@
 #ifndef		SOCKET_H
 # define	SOCKET_H
 
+# include "./string.h"
+extern "C" {
 # include <sys/socket.h>
 # include <netinet/in.h>
 # include <netdb.h>
+# include <stdlib.h>
 # include <unistd.h>
 # include <string.h>
 # include <strings.h>
+}
 # include <streambuf>
 # include <istream>
 # include <ostream>
 # include <memory>
+# include <map>
 # include <iostream>
 
 # define MAX_HTTP_CLIENTS				100
 # define MAX_HTTP_PENDING_CONNECTIONS	5
+
+/*extern size_t				strlen(const char *);
+  extern char					*strerror(int);*/
 
 template<typename Char>
 class						BasicSocketBuffer
@@ -149,6 +157,51 @@ protected:
 typedef BasicSocketBuffer<char>		SocketBuf;
 typedef BasicSocketBuffer<wchar_t>	WSocketBuf;
 
+class SocketStage {
+public:
+	typedef unsigned					Id;
+	typedef std::map<Id, std::string>	NameMap;
+
+	static const SocketStage			None;
+	static const SocketStage			Opened;
+	static const SocketStage			Closed;
+	static const SocketStage			Bound;
+	static const SocketStage			Listening;
+	static const SocketStage			Count;
+
+protected:
+	Id					data;
+
+	SocketStage(Id val);
+public:
+	SocketStage(const SocketStage &rhs = SocketStage::None);
+	~SocketStage();
+
+	SocketStage				&operator=(const SocketStage &);
+
+	bool					operator>=(const SocketStage &) const;
+	bool					operator<=(const SocketStage &) const;
+
+	bool					operator>(const SocketStage &) const;
+	bool					operator<(const SocketStage &) const;
+
+	bool					operator!=(const SocketStage &) const;
+	bool					operator==(const SocketStage &) const;
+
+	static const NameMap	*Names();
+
+	std::string				name() const;
+	Id						value() const;
+
+	operator				std::string() const;
+	operator				Id() const;
+protected:
+private:
+	friend std::ostream &operator<<(std::ostream &, const SocketStage &);
+};
+
+std::ostream &operator<<(std::ostream &, const SocketStage &);
+
 template<typename Char>
 class								BasicSocketStream
 : public std::basic_iostream<Char>
@@ -165,20 +218,44 @@ public:
 
 protected:
 	buf_type						buf;
+	SocketStage						stage;
 	std::string						msg;
 	int								timeout;
 
 public:
-	BasicSocketStream(int timeout = 2) : stream_type(&buf), msg(), timeout(timeout) {}
-	BasicSocketStream(int s, int timeout = 2) : stream_type(&buf), msg(), timeout(timeout) { buf.set_socket(s); }
+	BasicSocketStream(int timeout = 2)
+		: stream_type(&buf)
+		, stage()
+		, msg()
+		, timeout(timeout)
+		{}
+	BasicSocketStream(int s, int timeout = 2)
+		: stream_type(&buf)
+		, stage()
+		, msg()
+		, timeout(timeout)
+		{ buf.set_socket(s); }
+	virtual ~BasicSocketStream() throw()
+		{ close(); }
 
 	bool							open(const std::string& host, uint16_t port) {
 		close();
-		int sd = socket(AF_INET, SOCK_STREAM, 0);
+		int sd = -1;
 		sockaddr_in sin;
-		hostent *he = gethostbyname(host.c_str());
-		int code = errno;
-
+		hostent *he = NULL;
+		msg = "";
+		if (!(he = gethostbyname(host.c_str())))
+		{
+			msg = std::string(strerror(errno));
+			stream_type::setstate(std::ios::failbit);
+			throw std::runtime_error(host + ": " + msg);
+		}
+		if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+		{
+			msg = std::string(strerror(errno));
+			stream_type::setstate(std::ios::failbit);
+			throw std::runtime_error("cannot open socket: " + std::string(strerror(errno)));
+		}
 		setOptions(sd);
 
 		std::copy(reinterpret_cast<char*>(he->h_addr)
@@ -188,15 +265,17 @@ public:
 		sin.sin_port = htons(port);
 
 		if(connect(sd, reinterpret_cast<sockaddr*>(&sin), sizeof(sin)) < 0) {
+			msg = std::string(strerror(errno));
 			stream_type::setstate(std::ios::failbit);
-			code = errno;
 		} else {
 			buf.set_socket(sd);
+			stage = SocketStage::Opened;
 		}
-		msg = strerror(errno);
-		return *this;
+		return (msg.empty());
 	}
-
+	bool							isOpen() const {
+		return (stage != SocketStage::Closed && stage != SocketStage::None);
+	}
 	std::string						message() const {
 		return (msg);
 	}
@@ -231,6 +310,10 @@ public:
 		}
 	}
 
+	SocketStage						getStage() const {
+		return (stage);
+	}
+
 	bool							listen(uint16_t port) {
 		close();
 		int code = 0;
@@ -262,9 +345,11 @@ public:
 			}
 		}
 		if (!ret) {
-			char *e = strerror(code);
+			const char *e = strerror(code);
 			msg += ":" + std::string(e, e + strlen(e));
 			stream_type::setstate(std::ios::failbit);
+		} else {
+			stage = SocketStage::Listening;
 		}
 		return (ret);
 	}
@@ -286,23 +371,23 @@ public:
 								&clientLen);
 			if (clientFd < 0) {
 				errorHandler(&cliAddr);
-				return (strm);
-			}
-			strm.reset(new BasicSocketStream(clientFd, 1));
-			if (guard(strm, &cliAddr)) {
-				acceptor(strm, &cliAddr);
 			} else {
-				rejector(strm, &cliAddr);
+				strm.reset(new BasicSocketStream(clientFd, 1));
+				if (guard(strm, &cliAddr)) {
+					acceptor(strm, &cliAddr);
+				} else {
+					rejector(strm, &cliAddr);
+				}
 			}
 		}
 		return (strm);
 	}
 
 	void							close() {
-		if (buf.get_socket() != 0) {
-			if (!::close(buf.get_socket())) {
-				buf.set_socket(0);
-			}
+		if (stage != SocketStage::Closed) {
+			::close(buf.get_socket());
+			buf.set_socket(0);
+			stage = SocketStage::Closed;
 		}
 		stream_type::clear();
 	}

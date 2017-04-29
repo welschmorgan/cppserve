@@ -6,21 +6,19 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/05 13:55:48 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/05 18:50:12 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/21 23:43:37 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include "client.h"
+#include "client.hpp"
+#include <sstream>
 
 HTTPClient::HTTPClient(SocketStream::ptr strm,
-					   short family,
-					   const std::string &addr,
-					   uint16_t port)
+					   const Address &addr)
 	: mStream(strm)
-	, mFamily(family)
 	, mAddress(addr)
-	, mPort(port)
 	, mPID(0)
+	, mRequest(new HTTPRequest())
 {
 }
 
@@ -30,12 +28,18 @@ HTTPClient::~HTTPClient() {
 
 
 HTTPClient::operator std::string() const {
-	std::string str("");
-	str += (mFamily == AF_INET ? "ipv4" : "ipv6") + std::string(" ");
-	str += mAddress + ":";
-	str += std::to_string(mPort);
-	return (str);
+	return ((std::string)mAddress);
 }
+
+void				HTTPClient::parseRequest() {
+	mRequest->parse(*mStream);
+}
+
+HTTPProtocol		HTTPClient::getProtocol() const
+{
+	return (mRequest->getProtocol());
+}
+
 int					HTTPClient::getPID() const {
 	return (mPID);
 }
@@ -43,30 +47,33 @@ void				HTTPClient::_setPID(int pid) {
 	mPID = pid;
 }
 
-
-short				HTTPClient::getFamily() const {
-	return (mFamily);
-}
-
-std::string			HTTPClient::getAddress() const {
-	return (mAddress);
-}
-
-uint16_t			HTTPClient::getPort() const {
-	return (mPort);
-}
-
 SocketStream::ptr	HTTPClient::getStream() const {
 	return (mStream);
 }
 
+SharedHTTPRequest	HTTPClient::getRequest() const {
+	return (mRequest);
+}
 
 bool				HTTPClient::open(const std::string &host, uint16_t port) {
 	return (mStream->open(host, port));
 }
 
 void				HTTPClient::close() {
-	mStream->close();
+	if (mStream) {
+		if (mStream->isOpen()) {
+			std::cout << "[+] Closing client socket " << *this << std::endl;
+		}
+		mStream->close();
+	}
+}
+
+
+bool				HTTPClient::writeResponse(SharedHTTPResponse res) {
+	return (res->write(*mStream));
+}
+const Address		&HTTPClient::getAddress() const {
+	return (mAddress);
 }
 
 std::ostream		&operator<<(std::ostream &os, const HTTPClient &c) {

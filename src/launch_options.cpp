@@ -6,11 +6,11 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 14:17:26 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/05 13:22:59 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/23 17:09:11 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include "launch_options.h"
+#include "launch_options.hpp"
 #include <iostream>
 
 LaunchOptions::LaunchOptions(int argc, char *const argv[])
@@ -47,9 +47,8 @@ const LaunchOption		*LaunchOptions::get(const std::string &name) const {
 		}
 		triggers = &it->getTriggers();
 		for (jt = triggers->begin(); jt != triggers->end(); jt++) {
-			if (*jt == name || (std::string("-") + *jt) == name) {
+			if ((*jt) == name)
 				return (&(*it));
-			}
 		}
 	}
 	return (NULL);
@@ -65,9 +64,8 @@ LaunchOption			*LaunchOptions::get(const std::string &name) {
 		}
 		triggers = &it->getTriggers();
 		for (jt = triggers->begin(); jt != triggers->end(); jt++) {
-			if (*jt == name || (std::string("-") + *jt) == name) {
+			if (*jt == name)
 				return (&(*it));
-			}
 		}
 	}
 	return (NULL);
@@ -76,12 +74,14 @@ LaunchOption			*LaunchOptions::get(const std::string &name) {
 bool					LaunchOptions::set(const std::string &name,
 										   const std::vector<std::string> &triggers,
 										   LaunchOption::Handler handler,
-										   const std::string &value) {
+										   const std::string &value,
+										   const std::string &desc) {
 	LaunchOption	*opt;
 
 	opt = get(name);
 	if (opt) {
 		opt->setTriggers(triggers);
+		opt->setDesc(desc);
 		opt->setValue(value);
 		opt->setHandler(handler);
 	} else {
@@ -108,34 +108,58 @@ bool					LaunchOptions::contains(const std::string &name) const {
 	return (false);
 }
 
-void				LaunchOptions::parse() {
+void				LaunchOptions::parse(void *data) {
 	ArgList::iterator it;
 	LaunchOption::Handler hdr;
 	LaunchOption *opt;
-	for (it = mArgs.begin(); it != mArgs.end(); it++)
+	for (it = mArgs.begin() + 1; it != mArgs.end(); it++)
 	{
 		opt = get(it->getName());
 		if (opt) {
-			//std::cout << "[+] Found: " << opt->getName() << std::endl;
 			opt->setValue(it->getValue());
 			opt->setActive(true);
 			hdr = it->getHandler();
 			if (hdr) {
-				hdr();
+				hdr(data);
 			}
+			hdr = opt->getHandler();
+			if (hdr) {
+				hdr(data);
+			}
+		} else {
+			throw std::runtime_error("unkown option: " + it->getName());
 		}
 	}
+}
+
+LaunchOptions::ArgList			*LaunchOptions::supplied() throw()
+{
+	return (&mArgs);
+}
+const LaunchOptions::ArgList	*LaunchOptions::supplied() const throw()
+{
+	return (&mArgs);
+}
+LaunchOptions::ArgList			*LaunchOptions::registered() throw()
+{
+	return (&mRegs);
+}
+const LaunchOptions::ArgList	*LaunchOptions::registered() const throw()
+{
+	return (&mRegs);
 }
 
 
 LaunchOption::LaunchOption(const std::string &name,
 						   const std::vector<std::string> &triggers,
 						   Handler handler,
-						   const std::string &value)
+						   const std::string &value,
+						   const std::string &desc)
 	: mName(name)
 	, mTriggers(triggers)
 	, mHandler(handler)
 	, mValue(value)
+	, mDesc(desc)
 	, mActive(false)
 {
 	size_t pos(name.find('='));
@@ -147,9 +171,10 @@ LaunchOption::LaunchOption(const std::string &name,
 
 LaunchOption::LaunchOption(const LaunchOption &rk)
 	: mName(rk.mName)
-	, mValue(rk.mValue)
-	, mHandler(rk.mHandler)
 	, mTriggers(rk.mTriggers)
+	, mHandler(rk.mHandler)
+	, mValue(rk.mValue)
+	, mDesc(rk.mDesc)
 	, mActive(rk.mActive)
 {}
 
@@ -158,9 +183,10 @@ LaunchOption::~LaunchOption()
 
 LaunchOption &LaunchOption::operator=(const LaunchOption &rk) {
 	mName = rk.mName;
-	mValue = rk.mValue;
 	mTriggers = rk.mTriggers;
 	mHandler = rk.mHandler;
+	mValue = rk.mValue;
+	mDesc = rk.mDesc;
 	mActive = rk.mActive;
 	return (*this);
 }
@@ -171,7 +197,7 @@ const std::string	&LaunchOption::getValue() const { return (mValue); }
 const std::vector<std::string>	&LaunchOption::getTriggers() const { return (mTriggers); }
 LaunchOption::Handler	LaunchOption::getHandler() const { return (mHandler); }
 
-void				LaunchOption::NoOp(void) {}
+void				LaunchOption::NoOp(void *) {}
 
 void				LaunchOption::setTriggers(const std::vector<std::string> &n) { mTriggers = n; }
 void				LaunchOption::setHandler(Handler v) { mHandler = v; }
@@ -180,3 +206,12 @@ void				LaunchOption::setValue(const std::string &v) { mValue = v; }
 
 void				LaunchOption::setActive(bool state) { mActive = state; }
 bool				LaunchOption::isActive() const { return (mActive); }
+
+const std::string					&LaunchOption::getDesc() const
+{
+	return (mDesc);
+}
+void								LaunchOption::setDesc(const std::string &d)
+{
+	mDesc = d;
+}

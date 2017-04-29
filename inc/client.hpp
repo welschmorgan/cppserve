@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/05 13:56:14 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/05 18:40:56 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/22 13:52:12 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,16 +14,18 @@
 # define	CLIENT_H
 
 # include <string>
-# include "socket.h"
 # include <memory>
+# include "address.hpp"
+# include "socket.hpp"
+# include "request.hpp"
+# include "response.hpp"
 
 class HTTPClient {
 protected:
 	SocketStream::ptr	mStream;
-	short				mFamily;
-	std::string			mAddress;
-	uint16_t			mPort;
+	Address				mAddress;
 	int					mPID;
+	SharedHTTPRequest	mRequest;
 
 private:
 	HTTPClient(const HTTPClient &c);
@@ -31,21 +33,25 @@ private:
 
 public:
 	HTTPClient(SocketStream::ptr strm,
-			   short family,
-			   const std::string &addr,
-			   uint16_t port);
+			   const Address &addr);
 	virtual ~HTTPClient();
 
+	SharedHTTPRequest					getRequest() const;
 	operator std::string() const;
+	void								parseRequest(const std::string &method,
+													 const std::string &uri,
+													 const std::string &proto);
+	HTTPProtocol		getProtocol() const;
 
 	int					getPID() const;
 	void				_setPID(int pid);
 
-	short				getFamily() const;
-	std::string			getAddress() const;
-	uint16_t			getPort() const;
+	void				parseRequest();
 
+	const Address		&getAddress() const;
 	SocketStream::ptr	getStream() const;
+
+	bool				writeResponse(SharedHTTPResponse resp);
 
 	bool				open(const std::string &host, uint16_t port);
 	void				close();
