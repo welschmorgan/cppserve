@@ -1,2 +1,3 @@
 cppserve
-obj/*.o
+obj
+*.log
