@@ -10,7 +10,7 @@
 //                                                                            //
 // ************************************************************************** //
 
-#include "cache.h"
+#include "cache.hpp"
 #include <string.h>
 
 CacheData::CacheData()

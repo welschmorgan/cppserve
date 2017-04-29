@@ -6,23 +6,26 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/12 16:48:49 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/12 17:42:54 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/22 16:44:32 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef		PROTOCOL_H
 # define	PROTOCOL_H
 
-# include "stringlist.h"
+# include "stringlist.hpp"
 
 class						HTTPProtocol {
 protected:
-	std::string				mVersion;
-	std::string				mURI;
 	std::string				mMethod;
+	std::string				mURI;
+	std::string				mVersion;
 
 public:
 	HTTPProtocol();
+	HTTPProtocol(const String &method,
+				 const String &uri,
+				 const String &version = "HTTP/1.1");
 	HTTPProtocol(const HTTPProtocol &p);
 	~HTTPProtocol();
 

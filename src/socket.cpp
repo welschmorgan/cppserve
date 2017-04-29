@@ -6,11 +6,11 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/07 21:03:39 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/07 21:37:03 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/29 19:19:45 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include "socket.h"
+#include "socket.hpp"
 
 
 const SocketStage			SocketStage::None(0);
@@ -36,32 +36,41 @@ SocketStage &SocketStage::operator=(const SocketStage &rk) {
 	return (*this);
 }
 
-std::string				SocketStage::name() const {
-	NameMap::const_iterator it(Names().find(data));
+std::string					SocketStage::name() const {
+	const NameMap			*names(Names());
+	NameMap::const_iterator it(names->find(data));
 	std::string				ret;
-	if (it != Names().end()) {
+	if (it != names->end())
 		ret = it->second;
-	}
 	return (ret);
 }
 
-SocketStage::Id			SocketStage::value() const {
+SocketStage::Id				SocketStage::value() const {
 	return (data);
 }
 
 
+bool					SocketStage::operator<(const SocketStage &rk) const {
+	return (data < rk.data);
+}
+
+bool					SocketStage::operator>(const SocketStage &rk) const {
+	return (data > rk.data);
+}
+
+bool					SocketStage::operator<=(const SocketStage &rk) const {
+	return (data <= rk.data);
+}
+bool					SocketStage::operator>=(const SocketStage &rk) const {
+	return (data >= rk.data);
+}
+
 bool					SocketStage::operator==(const SocketStage &rk) const {
 	return (data == rk.data);
 }
-bool					SocketStage::operator==(Id id) const {
-	return (data == id);
-}
 
 bool					SocketStage::operator!=(const SocketStage &rk) const {
-	return (!(*this == rk));
-}
-bool					SocketStage::operator!=(Id id) const {
-	return (!(*this == id));
+	return (data != rk.data);
 }
 
 SocketStage::operator	std::string() const {
@@ -73,21 +82,21 @@ SocketStage::operator	Id() const {
 }
 
 
-const SocketStage::NameMap	SocketStage::Names() {
-	static NameMap	names;
-	if (names.empty()) {
-		names[None.data] = "none";
-		names[Opened.data] = "opened";
-		names[Closed.data] = "closed";
-		names[Bound.data] = "bound";
-		names[Listening.data] = "listening";
-		names[Count.data] = "unknown";
-	}
-	return (names);
+const SocketStage::NameMap	*SocketStage::Names() {
+	static const NameMap	names
+	{
+		{ None.data, "none" },
+		{ Opened.data, "opened" },
+		{ Closed.data, "closed" },
+		{ Bound.data, "bound" },
+		{ Listening.data, "listening" },
+		{ Count.data, "unknown" },
+	};
+	return (&names);
 }
 
 
 std::ostream &operator<<(std::ostream &os, const SocketStage &stg) {
-	os << stg.name();
+	os << stg.value() << ": " << stg.name();
 	return (os);
 }

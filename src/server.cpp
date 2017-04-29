@@ -6,11 +6,11 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:43:08 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/09 20:59:33 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/23 17:06:19 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include "server.h"
+#include "server.hpp"
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
@@ -22,7 +22,7 @@
 HTTPServerList					HTTPServer::Instances = HTTPServerList();
 
 
-static std::string	GetTime()
+static std::string				GetTime()
 {
 	time_t			rawtime;
 	struct tm *		timeinfo;
@@ -48,8 +48,25 @@ static std::string	&TrimQuotes(std::string &str)
 	return (str);
 }
 
-static void						option_verbose(HTTPServer *serv) {
-	serv->setVerbose(true);
+static void						option_quiet(void *data) {
+	HTTPServer *serv = reinterpret_cast<HTTPServer *>(data);
+	serv->setVerbose(LL_LOWEST);
+}
+static void						option_help_usage(void *data) {
+	HTTPServer *serv = reinterpret_cast<HTTPServer *>(data);
+	serv->showHelpScreen("usage");
+}
+static void						option_verbose(void *data) {
+	HTTPServer *serv = reinterpret_cast<HTTPServer *>(data);
+	serv->setVerbose(LL_NORMAL);
+}
+static void						option_verbose_high(void *data) {
+	HTTPServer *serv = reinterpret_cast<HTTPServer *>(data);
+	serv->setVerbose(LL_HIGH);
+}
+static void						option_verbose_highest(void *data) {
+	HTTPServer *serv = reinterpret_cast<HTTPServer *>(data);
+	serv->setVerbose(LL_HIGHEST);
 }
 
 static void						server_accept(HTTPServer *serv, SocketStream::ptr strm, sockaddr_in *addr) {
@@ -70,32 +87,66 @@ HTTPServer::HTTPServer(int argc, char *const argv[])
 	, mSocket(0, 0)
 	, mPort(8080)
 	, mClients()
-	, mVerbose(true)
 	, mShutdown(false)
+	, mStarted(false)
 	, mLocator()
 	, mAccessList(new AccessControlList())
 	, mResponse(new HTTPResponse())
 	, mTranslations()
 	, mResults()
+	, mTags()
+	, mLogger()
+	, mManual()
 {
 	Instances.push_back(this);
 	HTTPStatus::init();
-	const StringList verbose{"v", "verbose"};
-	mArgs.set("verbose", verbose, std::bind(option_verbose, this),
-			  "");
-	mArgs.parse();
-	static char buf[1024] = {0};
-	getcwd(&buf[0], 1024);
+	mLogger.reset(new file_logger("server.log",
+								  LL_HIGHEST,
+								  LF_LEVEL | LF_TRUNCATE | LF_TIMESTAMP));
 
-	mTranslations["/"] = URITranslation{ "index.html", "index.php", "index.js" };
+	mArgs.set("help:general",
+			  StringList{"-h", "--help"},
+			  std::bind(option_help_usage, std::placeholders::_1),
+			  "",
+			  "shows this help screen");
+	mArgs.set("verbose:quiet",
+			  StringList{"-q", "--quiet"},
+			  std::bind(option_quiet, std::placeholders::_1),
+			  "",
+			  "shows additionnal log messages");
+	mArgs.set("verbose:normal",
+			  StringList{"-v", "--verbose"},
+			  std::bind(option_verbose, std::placeholders::_1),
+			  "",
+			  "shows additionnal log messages");
+	mArgs.set("verbose:high",
+			  StringList{"-vv", "--high-verbose"},
+			  std::bind(option_verbose_high, std::placeholders::_1),
+			  "",
+			  "shows additionnal log messages");
+	mArgs.set("verbose:talkative",
+			  StringList{"-vvv", "--talkative"},
+			  std::bind(option_verbose_highest, std::placeholders::_1),
+			  "",
+			  "shows additionnal log messages");
+	buildManual();
+	mArgs.parse((void*)this);
+	ManualSection *sec = mManual.getActiveSection();
+	if (!sec)
+	{
+		static char buf[1024] = {0};
+		getcwd(&buf[0], 1024);
 
-	mLocator.setBaseDir(buf);
-	mLocator.addHandler(SharedResourceScanHandler(new StaticResourceHandler(&mLocator)));
-	mLocator.addHandler(SharedResourceScanHandler(new URITranslationHandler(&mLocator,
-													  &mTranslations, mResults)));
-	mLocator.addHandler(SharedResourceScanHandler(new ETagHandler(&mLocator, mTags)));
-	mLocator.addHandler(SharedResourceScanHandler(new ACLResourceHandler(&mLocator)));
-	discoverLocations();
+		mTranslations["/"] = URITranslation{ "index.html", "index.php", "index.js" };
+
+		mLocator.setBaseDir(buf);
+		mLocator.addHandler(SharedResourceScanHandler(new StaticResourceHandler(&mLocator)));
+		mLocator.addHandler(SharedResourceScanHandler(new URITranslationHandler(&mLocator,
+																				&mTranslations, mResults)));
+		mLocator.addHandler(SharedResourceScanHandler(new ETagHandler(&mLocator, mTags)));
+		mLocator.addHandler(SharedResourceScanHandler(new ACLResourceHandler(&mLocator)));
+		discoverLocations();
+	}
 }
 
 HTTPServer::~HTTPServer()
@@ -111,17 +162,75 @@ HTTPServer::~HTTPServer()
 }
 
 
+void								HTTPServer::buildManual() throw(std::runtime_error)
+{
+
+	ManualSection							*sec = NULL;
+	LaunchOptions::ArgList					*args;
+	std::vector<std::string>::const_iterator trig;
+	String			usageString("cppserve");
+
+	usageString += " [OPTIONS...]";
+	sec = mManual.createSection("general",
+								"General Section",
+								StringStream(),
+								"Morgan Welsch",
+								StringStream());
+	sec->desc << "General use of the web server";
+	sec->lines << "To start the server just type at a command prompt 'cppserve'";
+	sec = mManual.createSection("usage",
+								"Usage Section",
+								StringStream(),
+								"Morgan Welsch",
+								StringStream());
+	sec->desc << "Options and command-line usage";
+	sec->lines << usageString << std::endl;
+	sec->lines << std::endl;
+	sec->lines << "options:" << std::endl;
+	sec->lines << String(8, '-') << std::endl;
+	args = mArgs.registered();
+	String		triggerString;
+	for (auto arg : *args)
+	{
+		triggerString = "";
+		for (trig = arg.getTriggers().begin();
+			 trig != arg.getTriggers().end();
+			 trig++)
+		{
+			if (trig != arg.getTriggers().begin())
+				triggerString += ", ";
+			triggerString += *trig;
+		}
+		triggerString += ":";
+		sec->lines << String(1, '\t') << triggerString << std::endl;
+		sec->lines << String(1, '\t') << String(triggerString.size(), '-') << std::endl;
+		sec->lines << String(2, '\t') << arg.getDesc() << std::endl;
+
+	}
+}
+
+logger								&HTTPServer::getLogger() throw()
+{
+	return (*mLogger);
+}
+
 int									HTTPServer::run()
 {
+	ManualSection *sec = mManual.getActiveSection();
+	if (sec)
+	{
+		mLogger->flags(LF_NONE);
+		(*mLogger) << *sec << std::endl;
+		return (EXIT_FAILURE);
+	}
+	mStarted = true;
 	signal(SIGINT, &HTTPServer::_onSignal);
 	mSocket.listen(mPort);
 	if (!mSocket) {
 		throw std::runtime_error(mSocket.message());
 	}
-	if (mVerbose) {
-		std::cout << "[+] Starting server ..." << std::endl;
-		std::cout << "\thttp://localhost:" << mPort << std::endl;
-	}
+	(*mLogger) << "[+] Starting server ..." << std::endl;
+	(*mLogger) << "\thttp://localhost:" << mPort << std::endl;
 	while (!mShutdown) {
 		mSocket.accept(std::bind(server_accept,
 								 this, std::placeholders::_1, std::placeholders::_2),
@@ -142,7 +251,7 @@ void								HTTPServer::closeClients() {
 			(*cit)->close();
 	}
 	if (mSocket.isOpen()) {
-		std::cout << "[+] Closing master socket" << std::endl;
+		(*mLogger) << "[+] Closing master socket" << std::endl;
 		mSocket.close();
 	}
 }
@@ -169,11 +278,14 @@ void								HTTPServer::setPort(uint16_t p) throw() {
 }
 
 int									HTTPServer::shutdown() {
-	if (mVerbose) {
-		dumpSocketStates(std::cout);
-		std::cout << "[+] Shutting down ..." << std::endl;
+	if (mStarted)
+	{
+		if (mLogger->level() >= LL_NORMAL) {
+			dumpSocketStates(mLogger->stream());
+			(*mLogger) << "[+] Shutting down ..." << std::endl;
+		}
+		closeClients();
 	}
-	closeClients();
 	mShutdown = true;
 	return (0);
 }
@@ -186,13 +298,11 @@ void								HTTPServer::dumpSocketStates(std::ostream &os) const {
 	}
 }
 
-void							HTTPServer::onSignal(int no) {
-	if (mVerbose) {
-		std::cerr << "[+] Caught: " << no << std::endl;
-	}
+void								HTTPServer::onSignal(int no) {
+	(*mLogger) << "[+] Caught: " << no << std::endl;
 	if (no == SIGINT) {
 		shutdown();
-		exit(0);
+		//exit(0);
 	}
 }
 
@@ -204,7 +314,7 @@ void							HTTPServer::_onSignal(int no) {
 }
 
 void							HTTPServer::onAccept(SocketStream::ptr strm, sockaddr_in *addr) {
-	std::cout << "[+] Connection Accepted: " << *strm << std::endl;
+	(*mLogger) << "[+] Connection Accepted: " << *strm << std::endl;
 	Address						raddr(addr);
 	mClients.push_back(SharedHTTPClientPtr(new HTTPClient(strm, raddr)));
 	SharedHTTPClientPtr client(mClients.back());
@@ -212,7 +322,7 @@ void							HTTPServer::onAccept(SocketStream::ptr strm, sockaddr_in *addr) {
 	//if (pid == 0) {
 	//client->_setPID((int)pid);
 		serve(client);
-		std::cout << "[+] Done: " << *client << std::endl;
+		(*mLogger) << "[+] Done: " << *client << std::endl;
 		//client->_setPID(0);
 		//exit(0);
 		//} else {
@@ -227,14 +337,14 @@ bool							HTTPServer::checkAccessList(SharedHTTPClientPtr client)
 	StringMap::const_iterator mt2;
 	StringMap::const_iterator mt;
 	bool inc = false, exc = false;
-	std::cout << "[+] Checking acl ..." << std::endl;
+	(*mLogger) << "[+] Checking acl ..." << std::endl;
 	for (it = mAccessList->getSections()->begin(); !inc && !exc && it != mAccessList->getSections()->end(); it++) {
 		if (it->second->getMode() == ACM_INCLUDE) {
 			if (it->second->getName() == client->getRequest()->getURI()) {
-				std::cout << "* check acl section: '" << client->getRequest()->getURI() << "' == '" << it->second->getName() << "'" << std::endl;
+				(*mLogger) << "* check acl section: '" << client->getRequest()->getURI() << "' == '" << it->second->getName() << "'" << std::endl;
 				for (lt = it->second->getURIs().begin(); !inc && !exc && lt != it->second->getURIs().end(); lt++)
 				{
-					std::cout << "\turi matches: " << client->getRequest()->getURI() << std::endl;
+					(*mLogger) << "\turi matches: " << client->getRequest()->getURI() << std::endl;
 					if (*lt == client->getRequest()->getURI()) {
 						inc = true;
 						break ;
@@ -243,7 +353,7 @@ bool							HTTPServer::checkAccessList(SharedHTTPClientPtr client)
 				for (mt = it->second->getHeaders().begin(); !inc && !exc && mt != it->second->getHeaders().end(); mt++)
 				{
 					for (mt2 = client->getRequest()->getHeaders()->begin(); !inc && !exc && mt2 != client->getRequest()->getHeaders()->end(); mt2++) {
-						std::cout << "\theader matches: " << mt->first << ": " << mt2->second << " == " << mt->second << std::endl;
+						(*mLogger) << "\theader matches: " << mt->first << ": " << mt2->second << " == " << mt->second << std::endl;
 						if (mt2->first == mt->first) {
 							inc = true;
 							break ;
@@ -253,10 +363,10 @@ bool							HTTPServer::checkAccessList(SharedHTTPClientPtr client)
 			}
 		} else if (it->second->getMode() == ACM_EXCLUDE) {
 			if (it->second->getName() == client->getRequest()->getURI()) {
-				std::cout << "* check acl section: '" << client->getRequest()->getURI() << "' == '" << it->second->getName() << "'" << std::endl;
+				(*mLogger) << "* check acl section: '" << client->getRequest()->getURI() << "' == '" << it->second->getName() << "'" << std::endl;
 				for (lt = it->second->getURIs().begin(); lt != it->second->getURIs().end(); lt++)
 				{
-					std::cout << "\turi matches: " << client->getRequest()->getURI() << std::endl;
+					(*mLogger) << "\turi matches: " << client->getRequest()->getURI() << std::endl;
 					if (*lt == client->getRequest()->getURI()) {
 						exc = true;
 						break ;
@@ -265,7 +375,7 @@ bool							HTTPServer::checkAccessList(SharedHTTPClientPtr client)
 				for (mt = it->second->getHeaders().begin(); !inc && !exc && mt != it->second->getHeaders().end(); mt++)
 				{
 					for (mt2 = client->getRequest()->getHeaders()->begin(); !inc && !exc && mt2 != client->getRequest()->getHeaders()->end(); mt2++) {
-						std::cout << "\theader matches: " << mt->first << ": " << mt2->second << " == " << mt->second << std::endl;
+						(*mLogger) << "\theader matches: " << mt->first << ": " << mt2->second << " == " << mt->second << std::endl;
 						if (mt2->first == mt->first) {
 							exc = true;
 							break ;
@@ -276,7 +386,7 @@ bool							HTTPServer::checkAccessList(SharedHTTPClientPtr client)
 		}
 	}
 	bool ret = ((!inc && !exc) || (!exc || inc));
-	std::cout << (ret ? "[+] access granted for client " : "[-] access denied for client ") << *client << std::endl;
+	(*mLogger) << (ret ? "[+] access granted for client " : "[-] access denied for client ") << *client << std::endl;
 	return (ret);
 }
 SharedAccessControlList			HTTPServer::getAccessList() const {
@@ -298,8 +408,7 @@ void							HTTPServer::handleGetRequest(SharedHTTPClientPtr client,
 	HTTPProtocol		proto(req->getProtocol());
 	std::string			lastEtagValue(req->getHeader("If-None-Match",
 													 &foundEtagVerif));
-	if (mVerbose)
-		std::cout << "[+] serving file: " << path << std::endl;
+	(*mLogger) << "[+] serving file: " << path << std::endl;
 	TrimQuotes(lastEtagValue);
 	if (!checkAccessList(client))
 	{
@@ -309,12 +418,10 @@ void							HTTPServer::handleGetRequest(SharedHTTPClientPtr client,
 	else
 	{
 		etagValue = mTags[path];
-		std::cout << "cur_etag(" << path << "): " << etagValue << ", last_etag: " << lastEtagValue << std::endl;
 		if (foundEtagVerif && etagValue == lastEtagValue)
 			mResponse->setStatus(HTTPStatus::Redirect::NotModified);
 		else
 		{
-			std::cout << "open file " << path << std::endl;
 			ifs.open(path);
 			if (!ifs)
 			{
@@ -339,7 +446,6 @@ void							HTTPServer::handleGetRequest(SharedHTTPClientPtr client,
 
 
 void							HTTPServer::serve(SharedHTTPClientPtr client) {
-	SocketStream				&stream(*client->getStream());
 	std::string					filePath;
 	std::string					lastModif = "Wed, 18 Jun 2003 16:05:58 GMT";
 	std::string					ctype = "text/html";
@@ -347,8 +453,7 @@ void							HTTPServer::serve(SharedHTTPClientPtr client) {
 
 
 	try {
-		if (mVerbose)
-			std::cout << "[+] Serving: " << *client << std::endl;
+		(*mLogger) << "[+] Serving: " << *client << std::endl;
 		client->parseRequest();
 		mResponse->reset(client->getRequest()->getProtocol());
 		mResponse->setHeader("Date", GetTime());
@@ -368,7 +473,7 @@ void							HTTPServer::serve(SharedHTTPClientPtr client) {
 	} catch (std::exception &ex) {
 		mResponse->setStatus(HTTPStatus::Server::InternalError);
 		mResponse->setBody(ex.what());
-		std::cerr << ex.what() << std::endl;
+		(*mLogger) << ex.what() << std::endl;
 	}
 	mResponse->setHeader("Content-Length", std::to_string(mResponse->getBody().size()));
 	client->writeResponse(mResponse);
@@ -389,23 +494,25 @@ std::string						HTTPServer::translateURI(const std::string &uri)
 }
 
 void							HTTPServer::onReject(SocketStream::ptr strm, sockaddr_in *addr) {
-	std::cout << "[+] Connection Rejected: " << *strm << std::endl;
+	(*mLogger) << "[+] Connection Rejected: " << *strm << std::endl;
+	(void)addr;
 }
 
 bool							HTTPServer::onGuard(SocketStream::ptr strm, sockaddr_in *addr) {
 	bool ret = true;
-	std::cout << "[+] Connection guard: " << *strm << std::endl;
+	(*mLogger) << "[+] Connection guard: " << *strm << std::endl;
 	if (mClients.size() >= MAX_HTTP_CLIENTS) {
 		ret = false;
 	}
+	(void)addr;
 	return (ret);
 }
 
 void							HTTPServer::onError(sockaddr_in *cli) {
 	if (!mShutdown) {
-		std::cerr << "[-] Connection Error: " << cli << std::endl;
+		(*mLogger) << "[-] Connection Error: " << cli << std::endl;
 		if (!mSocket.message().empty()) {
-			std::cerr << mSocket.message() << std::endl;
+			(*mLogger) << mSocket.message() << std::endl;
 		}
 		perror("");
 	}
@@ -415,5 +522,11 @@ bool							HTTPServer::isShuttingDown() const throw() {
 	return (mShutdown);
 }
 
-void							HTTPServer::setVerbose(bool state)
-{ mVerbose = state; }
+void							HTTPServer::setVerbose(log_level state)
+{ mLogger->level(state); }
+
+
+void							HTTPServer::showHelpScreen(const String &name) throw(std::runtime_error)
+{
+	mManual.activateSection(name);
+}

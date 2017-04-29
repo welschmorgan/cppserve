@@ -10,7 +10,7 @@
 //                                                                            //
 // ************************************************************************** //
 
-#include "status.h"
+#include "status.hpp"
 
 //#if 0
 # define defSection(secT, name, min, max)								\

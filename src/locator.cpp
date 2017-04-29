@@ -6,24 +6,26 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/10 21:41:12 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/09 20:55:35 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/23 14:44:39 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include "locator.h"
+#include "locator.hpp"
 #include <iomanip>
 #include <sys/types.h>
 #include <dirent.h>
-#include "access_control.h"
-#include "server.h"
+#include "access_control.hpp"
+#include "server.hpp"
 
-Locator::Locator(const std::string &base_dir)
+Locator::Locator(const std::string &base_dir,
+				 shared_logger_ptr logger)
 	: mBaseDir(base_dir)
 	, mFolders(new StringList())
 	, mFiles(new StringList())
 	, mErrors(new StringList())
 	, mHandlers()
 	, mExtra(NULL)
+	, mLogger(logger)
 {
 	if (!mBaseDir.empty() && mBaseDir[mBaseDir.size() - 1] == '/') {
 		mBaseDir.erase(mBaseDir.end() - 1);
@@ -36,6 +38,7 @@ Locator::Locator(const Locator &rk)
 	, mErrors(rk.mErrors)
 	, mHandlers(rk.mHandlers)
 	, mExtra(rk.mExtra)
+	, mLogger(rk.mLogger)
 {}
 Locator::~Locator()
 {}
@@ -48,6 +51,7 @@ Locator				&Locator::operator=(const Locator &rk)
 	mErrors = rk.mErrors;
 	mHandlers = rk.mHandlers;
 	mExtra = rk.mExtra;
+	mLogger = rk.mLogger;
 	return (*this);
 }
 
@@ -69,7 +73,7 @@ SharedStringList					Locator::getErrors() const {
 	return (mErrors);
 }
 
-void				Locator::discoverFolder(const std::string &folder) {
+void								Locator::discoverFolder(const std::string &folder) {
 	DIR *e;
 	struct dirent *ep;
 	std::string name;
@@ -96,6 +100,7 @@ void				Locator::discoverFolder(const std::string &folder) {
 }
 
 void				Locator::onFolderAdded(StringList::iterator str) {
+	(void)str;
 }
 
 void				Locator::onFileAdded(StringList::iterator str) {
@@ -142,6 +147,18 @@ std::string			Locator::find(const std::string &name) const
 			str = *it;
 	}
 	return (str);
+}
+
+shared_logger_ptr	Locator::getLogger() const throw()
+{
+	return (mLogger);
+}
+
+shared_logger_ptr	Locator::logMessage(const String &msg, log_level lvl) throw()
+{
+	if (mLogger)
+		mLogger->insert(msg, lvl);
+	return (mLogger);
 }
 
 SharedStringList	Locator::getFolders() const
@@ -285,7 +302,10 @@ void						StaticResourceHandler::work(Locator *locator,
 														StringList::iterator iter,
 														void *extra)
 {
-	std::cout << " found " << *iter << std::endl;
+	(void)locator;
+	(void)strings;
+	(void)extra;
+	locator->logMessage("found " + *iter);
 }
 
 ACLResourceHandler::ACLResourceHandler(Locator *loc)
@@ -314,10 +334,12 @@ void					ACLResourceHandler::work(Locator *locator,
 	HTTPServer					*srv(reinterpret_cast<HTTPServer *>(extra));
 	std::ifstream				ifs(*iter);
 
-	std::cout << "[+] Loading access control file: " << *iter << std::endl;
+	srv->log("[+] Loading access control file: " + *iter);
 	if (!(ifs >> acl)) {
 		throw std::runtime_error(*iter + ": failed to parse acl!");
 	}
+	(void)locator;
+	(void)strings;
 	srv->getAccessList()->merge(acl);
 }
 
@@ -389,9 +411,10 @@ void					URITranslationHandler::work(Locator *locator,
 		}
 	}
 	if (resIt != mResults.end())
-	{
-		std::cout << "[+] Found uri translation '" << resIt->second << "' for '" << resIt->first << "'" << std::endl;
-	}
+		locator->logMessage("[+] Found uri translation '" + resIt->second + "' for '" + resIt->first + "'");
+	(void)locator;
+	(void)strings;
+	(void)extra;
 }
 
 
@@ -419,11 +442,16 @@ void					ETagHandler::work(Locator *locator,
 										  StringList::iterator iter,
 										  void *extra)
 {
+	(void)locator;
+	(void)extra;
+	(void)iter;
+	(void)strings;
 /*	ETagHash			hasher;
 	std::string			path(*iter);
 	if (path.find(mLocator->getBaseDir()) != std::string::npos)
 		path = path.substr(mLocator->getBaseDir().size());
 	mTags[path] = std::to_string(hasher(path));
-	std::cout << "tag[" << *iter << "]: " << mTags[*iter] << std::endl;
+	if (mLogger)
+	(*mLogger) << "tag[" << *iter << "]: " << mTags[*iter] << std::endl;
 */
 }

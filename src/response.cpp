@@ -6,11 +6,11 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/11 11:41:12 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/08 14:31:56 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/22 00:06:30 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include "response.h"
+#include "response.hpp"
 #include <sstream>
 #include <iostream>
 #include <ctime>
@@ -48,7 +48,7 @@ HTTPResponse		&HTTPResponse::operator=(const HTTPResponse &rk)
 }
 
 
-int					HTTPResponse::getStatus(int code) const
+int					HTTPResponse::getStatus() const
 { return (mStatus); }
 const StringMap		&HTTPResponse::getHeaders() const
 { return (mHeaders); }
@@ -85,16 +85,13 @@ int					HTTPResponse::write(SocketStream &strm)
 {
 	std::stringstream	ss;
 	std::string			endl("\r\n");
-	std::string			codestr = std::to_string(mStatus) + " OK";
+	std::string			codestr = std::to_string(mStatus) + " " + HTTPStatus::CodeName(mStatus);
 
 	ss << mProto.getVersion() << " " << codestr << endl;
 	for (StringMap::iterator it = mHeaders.begin(); it != mHeaders.end(); it++)
 		ss << it->first << ": " << it->second << endl;
 	ss << endl
 	   << mBody;
-	std::cout << "Response:" << std::endl
-			  << std::string(10, '-') << std::endl
-			  << ss.str() << std::endl;
 	strm << ss.str();
 	strm.sync();
 	return (mStatus);

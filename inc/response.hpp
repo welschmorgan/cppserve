@@ -6,17 +6,18 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/11 11:35:11 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/14 20:23:46 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/22 13:53:11 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef		RESPONSE_H
 # define	RESPONSE_H
 
-# include "stringlist.h"
-# include "socket.h"
-# include "status.h"
-# include "protocol.h"
+# include "stringlist.hpp"
+# include "socket.hpp"
+# include "status.hpp"
+# include "protocol.hpp"
+# include <memory>
 
 class HTTPResponse {
 protected:
@@ -42,7 +43,7 @@ public:
 								  const std::string &value);
 	void				setBody(const std::string &body);
 
-	int					getStatus(int code) const;
+	int					getStatus() const;
 	const StringMap		&getHeaders() const;
 	const HTTPProtocol	&getProtocol() const;
 	const std::string	&getBody() const;

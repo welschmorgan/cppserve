@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/10 21:31:28 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/12 16:14:58 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/22 16:50:15 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 # include <vector>
 # include <map>
 # include <memory>
+# include "string.hpp"
 
 
 /**

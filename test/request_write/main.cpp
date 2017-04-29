@@ -5,23 +5,28 @@
 //                                                    +:+ +:+         +:+     //
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
-//   Created: 2017/02/04 13:28:39 by mwelsch           #+#    #+#             //
-//   Updated: 2017/02/14 19:50:17 by mwelsch          ###   ########.fr       //
+//   Created: 2017/04/22 16:29:30 by mwelsch           #+#    #+#             //
+//   Updated: 2017/04/29 18:50:44 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include <unistd.h>
-#include <iostream>
-#include "server.hpp"
-#include "path.hpp"
+# include "main.hpp"
 
-int	main(int argc, char *const argv[]) {
-	int code = EXIT_SUCCESS;
-	std::unique_ptr<HTTPServer> srv(new HTTPServer(argc, argv));
+typedef launcher<String, OStream>		launcher_t;
+
+int					main()
+{
+	SocketStream				sock(0, 0);
+	launcher_t					launchr(std::clog, "localhost", 8080, 5000);
 	try {
-		code = srv->run();
+		launchr.start<void(launcher_t *, SocketStream &), launcher_t *, SocketStream &>(
+			launcher_t::ping,
+			&launchr,
+			sock);
 	} catch (std::exception &e) {
-		std::cerr << "[-] " << e.what() << std::endl;
+		std::cerr << e.what() << std::endl;
+		return (EXIT_FAILURE);
 	}
-	return (code);
+	launchr.print_report(std::cout);
+	return (EXIT_SUCCESS);
 }

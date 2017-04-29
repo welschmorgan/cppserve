@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/04 13:30:07 by mwelsch           #+#    #+#             */
-/*   Updated: 2017/04/08 16:20:19 by mwelsch          ###   ########.fr       */
+//   Updated: 2017/04/23 16:54:01 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,21 +15,23 @@
 
 # include <list>
 
-# include "launch_options.h"
-# include "client.h"
-# include "address.h"
-# include "access_control.h"
-# include "locator.h"
-# include "stringlist.h"
-# include "request.h"
-# include "response.h"
+# include "launch_options.hpp"
+# include "client.hpp"
+# include "address.hpp"
+# include "access_control.hpp"
+# include "locator.hpp"
+# include "stringlist.hpp"
+# include "request.hpp"
+# include "response.hpp"
+# include "logger.hpp"
+# include "manual.hpp"
 
 typedef std::list<SharedHTTPClientPtr>			SharedHTTPClientList;
 
 class											HTTPServer;
 typedef std::list<HTTPServer*>					HTTPServerList;
 
-class HTTPServer
+class									HTTPServer
 {
 public:
 	typedef SharedHTTPClientList		ClientList;
@@ -40,14 +42,16 @@ protected:
 	SocketStream						mSocket;
 	uint16_t							mPort;
 	ClientList							mClients;
-	long								mVerbose;
 	bool								mShutdown;
+	bool								mStarted;
 	Locator								mLocator;
 	SharedAccessControlList				mAccessList;
 	SharedHTTPResponse					mResponse;
 	URITranslationMap					mTranslations;
 	URITranslationResultMap				mResults;
 	ETagMap								mTags;
+	shared_logger_ptr					mLogger;
+	Manual								mManual;
 
 private:
 	HTTPServer(const HTTPServer &rk);
@@ -70,6 +74,7 @@ public:
 
 	uint16_t							getPort() const throw();
 	void								setPort(uint16_t p) throw();
+	void								buildManual() throw(std::runtime_error);
 
 	const URITranslationMap				*getURITranslationMap() const;
 	std::string							translateURI(const std::string &uri);
@@ -94,11 +99,18 @@ public:
 	ClientList							&getClients();
 	const ClientList					&getClients() const;
 
-	void								setVerbose(bool state);
-
+	void								setVerbose(log_level state);
 	static void							_onSignal(int no);
+
+	logger								&log(const String t, log_level l = LL_NORMAL)
+		{ mLogger->insert(t, l); return (*mLogger); }
+
+	logger								&getLogger() throw();
+
+	void								showHelpScreen(const String &name = String("general")) throw(std::runtime_error);
 protected:
 	static HTTPServerList				Instances;
+
 };
 
 #endif

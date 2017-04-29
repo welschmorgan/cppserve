@@ -6,14 +6,14 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/11 12:52:31 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/12 16:21:52 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/22 13:53:20 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef		STATUS_H
 # define	STATUS_H
 
-# include "stringmap.h"
+# include "stringmap.hpp"
 
 typedef std::map<uint16_t, std::string> StatusMap;
 

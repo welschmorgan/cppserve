@@ -6,11 +6,11 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/10 23:30:26 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/08 13:24:26 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/22 20:57:48 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-# include "access_control.h"
+# include "access_control.hpp"
 
 AccessControlSection::AccessControlSection(const std::string &name,
 										   Mode m)
@@ -198,24 +198,20 @@ void						AccessControlList::parse(std::istream &is)
 			}
 			if (!(sstrm >> key))
 				PARSE_ERROR("EOF reached, expected \"include|exclude\"");
-			std::cout << "* add section: " << key << std::endl;
 			this->addSection(key, rmode);
 		} else if (mode == "header") {
 			if (!(sstrm >> key))
 				PARSE_ERROR("Missing header name!");
 			if (!(sstrm >> val))
 				PARSE_ERROR("Missing header value!");
-			std::cout << "* add header: " << key << val << std::endl;
 			mSection->addHeader(key, val);
 		} else if (mode == "ip") {
 			if (!(sstrm >> val))
 				return ;
-			std::cout << "* add ip: " << val << std::endl;
 			mSection->addIP(val);
 		} else if (mode == "uri") {
 			if (!(sstrm >> val))
 				return ;
-			std::cout << "* add uri: " << val << std::endl;
 			mSection->addURI(val);
 		}
 		lineid++;
@@ -225,7 +221,9 @@ void						AccessControlList::parse(std::istream &is)
 # undef PARSE_ERROR
 
 void						AccessControlList::serialize(std::ostream &os) const
-{}
+{
+	(void)os;
+}
 
 std::istream				&operator >>(std::istream &is, AccessControlList &acl)
 {

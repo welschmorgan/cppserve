@@ -6,15 +6,16 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/10 21:25:56 by mwelsch           #+#    #+#             */
-//   Updated: 2017/04/09 20:51:14 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/23 14:44:31 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef					LOCATOR_H
 # define				LOCATOR_H
 
-# include "stringlist.h"
-# include "path.h"
+# include "stringlist.hpp"
+# include "path.hpp"
+# include "logger.hpp"
 # include <functional>
 # include <list>
 
@@ -32,7 +33,8 @@ public:
 	typedef std::map<std::string, Handler>		HandlerMap;
 
 public:
-	Locator(const std::string &base_dir = std::string());
+	Locator(const std::string &base_dir = std::string(),
+			shared_logger_ptr logger = shared_logger_ptr());
 	Locator(const Locator &);
 	~Locator();
 
@@ -63,7 +65,8 @@ public:
 	void										*getExtra();
 	const void									*getExtra() const;
 	void										setExtra(void *e);
-
+	shared_logger_ptr							getLogger() const throw();
+	shared_logger_ptr							logMessage(const String &msg, log_level lvl = LL_NORMAL) throw();
 
 protected:
 	void										discoverFolder(const std::string &folder);
@@ -75,6 +78,7 @@ protected:
 	SharedStringList							mErrors;
 	ResourceScanHandlerList						mHandlers;
 	void										*mExtra;
+	shared_logger_ptr							mLogger;
 };
 
 class							ResourceScanHandler {

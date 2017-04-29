@@ -6,12 +6,14 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/11 02:31:10 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/08 14:53:41 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/22 16:49:32 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include "request.h"
+#include <sstream>
 #include <algorithm>
+#include "request.hpp"
+#include "string.hpp"
 
 HTTPRequest::HTTPRequest(SharedStringMap	headers,
 						 SharedStringList	body,
@@ -61,7 +63,12 @@ bool			HTTPRequest::parse(SocketStream &is) {
 			line.erase(line.begin());
 		while (!line.empty() && line.at(line.size() - 1) == '\n')
 			line.erase(line.begin() + line.size() - 1);
-		if (line.empty() || !strncmp(line.c_str(), "\r", 2))
+		if (line.empty()
+# ifdef UNICODE
+			|| !wcsncmp(line.c_str(), "\r", 2))
+# else
+			|| !strncmp(line.c_str(), "\r", 2))
+# endif
 		{
 			if (!headers)
 			{
@@ -107,6 +114,37 @@ bool			HTTPRequest::parse(SocketStream &is) {
 	}
 	std::cout << lineid << ": " << "done reading client request!" << std::endl;
 	return (true);
+}
+
+String				HTTPRequest::getHeader(const String &k) const
+{
+	StringMap::const_iterator	it(mHeaders->find(k));
+	String						ret;
+	if (it != mHeaders->end())
+		ret = it->second;
+	return (ret);
+}
+
+HTTPRequest			&HTTPRequest::setHeader(const String &k,
+											const String &v)
+{
+	(*mHeaders)[k] = v;
+	return (*this);
+}
+
+size_t				HTTPRequest::write(SocketStream &os) {
+	size_t			ret(0);
+	std::stringstream	ss;
+	ss << mProto;
+	for (auto line : *mHeaders) {
+		ss << line.first << ": " << line.second << std::endl;
+	}
+	for (auto line : *mBody) {
+		ss << line << std::endl;
+	}
+	ret = ss.str().size();
+	os << ss.str();
+	return (ret);
 }
 
 SharedStringMap		HTTPRequest::getHeaders() const {
@@ -166,6 +204,13 @@ HTTPProtocol		HTTPRequest::getProtocol() const {
 
 HTTPProtocol		&HTTPRequest::setProtocol(const HTTPProtocol &p) {
 	return (mProto = p);
+}
+
+HTTPProtocol		&HTTPRequest::setProtocol(const String &method,
+											  const String &uri,
+											  const String &version)
+{
+	return (mProto = HTTPProtocol(method, uri, version));
 }
 
 SharedStringMap		HTTPRequest::setHeaders(const SharedStringMap &m) {

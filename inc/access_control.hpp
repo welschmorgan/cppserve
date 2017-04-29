@@ -13,8 +13,8 @@
 #ifndef		ACCESSCONTROL_H
 # define	ACCESSCONTROL_H
 
-# include "stringlist.h"
-# include "stringmap.h"
+# include "stringlist.hpp"
+# include "stringmap.hpp"
 # include <sstream>
 
 enum					AccessControlMode

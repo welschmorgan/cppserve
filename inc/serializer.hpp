@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/12 18:29:24 by mwelsch           #+#    #+#             */
-//   Updated: 2017/02/13 21:37:36 by mwelsch          ###   ########.fr       //
+/*   Updated: 2017/04/22 00:32:19 by mwelsch          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,10 +39,11 @@ public:
 
 	operator						StringT() const;
 
-	friend OStreamT					&operator<<(OStreamT &os,
+/*	friend OStreamT					&operator<<(OStreamT &os,
 												const BasicSerializer<T, IStreamT, OStreamT> &c);
 	friend IStreamT					&operator>>(IStreamT &is,
 												BasicSerializer<T, IStreamT, OStreamT> &c);
+*/
 };
 
 template<typename T,
@@ -62,7 +63,7 @@ template<typename T,
 		 typename SStreamT>
 IStreamT					&operator>>(IStreamT &is,
 										BasicSerializer<T, IStreamT, OStreamT, StringT, SStreamT> &c) {
-	return (c.parse(c));
+	return (c.parse(is));
 }
 
 template<typename T,

@@ -6,32 +6,37 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/12 16:48:29 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/08 11:13:58 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/23 13:53:03 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include "protocol.h"
+#include "protocol.hpp"
 #include <sstream>
 #include <ostream>
 #include <istream>
 
 HTTPProtocol::HTTPProtocol()
-	: mVersion()
+	: mMethod()
 	, mURI()
-	, mMethod()
-{
+	, mVersion()
+{}
 
-}
+HTTPProtocol::HTTPProtocol(const String &method,
+						   const String &uri,
+						   const String &version)
+	: mMethod(method)
+	, mURI(uri)
+	, mVersion(version)
+{}
+
 HTTPProtocol::HTTPProtocol(const HTTPProtocol &rk)
-	: mVersion(rk.mVersion)
+	: mMethod(rk.mMethod)
 	, mURI(rk.mURI)
-	, mMethod(rk.mMethod)
-{
+	, mVersion(rk.mVersion)
+{}
 
-}
-HTTPProtocol::~HTTPProtocol() {
-
-}
+HTTPProtocol::~HTTPProtocol()
+{}
 
 
 

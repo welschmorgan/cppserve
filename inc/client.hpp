@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/05 13:56:14 by mwelsch           #+#    #+#             */
-/*   Updated: 2017/04/08 11:51:20 by mwelsch          ###   ########.fr       */
+//   Updated: 2017/04/22 13:52:12 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,10 @@
 
 # include <string>
 # include <memory>
-# include "address.h"
-# include "socket.h"
-# include "request.h"
-# include "response.h"
+# include "address.hpp"
+# include "socket.hpp"
+# include "request.hpp"
+# include "response.hpp"
 
 class HTTPClient {
 protected:

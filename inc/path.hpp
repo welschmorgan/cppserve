@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/12 19:19:20 by mwelsch           #+#    #+#             */
-//   Updated: 2017/04/08 16:48:26 by mwelsch          ###   ########.fr       //
+/*   Updated: 2017/04/22 00:31:16 by mwelsch          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 # include <string>
 # include <list>
-# include "serializer.h"
+# include "serializer.hpp"
 
 template<typename T>
 bool		PatternMatch(const T &pattern,
@@ -208,7 +208,7 @@ StringT			BasicPath<IStreamT,
 						  OStreamT,
 						  StringT,
 						  SStreamT>::get() const {
-	return (operator StringT());
+	return (mFull);
 }
 
 template<typename IStreamT,
@@ -327,8 +327,7 @@ bool						BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator!=(const BasicPath &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull != rk.mFull);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -339,8 +338,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator==(const BasicPath &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull == rk.mFull);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -351,8 +349,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator>(const BasicPath &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull > rk.mFull);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -363,8 +360,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator<(const BasicPath &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull < rk.mFull);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -375,8 +371,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator>=(const BasicPath &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull >= rk.mFull);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -387,8 +382,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator<=(const BasicPath &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull <= rk.mFull);
 }
 
 template<typename IStreamT,
@@ -400,8 +394,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator==(const StringT &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull == rk);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -412,8 +405,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator!=(const StringT &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull != rk);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -424,8 +416,7 @@ bool					BasicPath<IStreamT,
 								  StringT,
 								  SStreamT>::operator>(const StringT &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull > rk);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -436,8 +427,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator<(const StringT &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull < rk);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -448,8 +438,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator>=(const StringT &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull >= rk);
 }
 template<typename IStreamT,
 		 typename OStreamT,
@@ -460,8 +449,7 @@ bool					BasicPath<IStreamT,
 						  StringT,
 						  SStreamT>::operator<=(const StringT &rk)
 {
-	bool					ret(false);
-	return (ret);
+	return (mFull <= rk);
 }
 
 template<typename IStreamT,

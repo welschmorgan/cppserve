@@ -6,11 +6,11 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/05 13:55:48 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/08 11:51:52 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/21 23:43:37 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#include "client.h"
+#include "client.hpp"
 #include <sstream>
 
 HTTPClient::HTTPClient(SocketStream::ptr strm,
@@ -70,7 +70,6 @@ void				HTTPClient::close() {
 
 
 bool				HTTPClient::writeResponse(SharedHTTPResponse res) {
-	SocketStream	*strm(mStream.get());
 	return (res->write(*mStream));
 }
 const Address		&HTTPClient::getAddress() const {
