@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/10 23:30:26 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/22 20:57:48 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/04/29 20:11:38 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -18,6 +18,7 @@ AccessControlSection::AccessControlSection(const std::string &name,
 	, mHeaders()
 	, mIPs()
 	, mURIs()
+	, mAliases()
 	, mMode(m)
 {}
 
@@ -170,6 +171,7 @@ void									AccessControlList::clearSections() {
 }
 #include <iostream>
 # define PARSE_ERROR(msg) 	throw std::runtime_error("l" + std::to_string(lineid) + ": " + std::string(msg));
+
 void						AccessControlList::parse(std::istream &is)
 {
 	std::string line, mode, key, val;
@@ -213,9 +215,32 @@ void						AccessControlList::parse(std::istream &is)
 			if (!(sstrm >> val))
 				return ;
 			mSection->addURI(val);
+		} else if (mode == "alias") {
+			if (!(sstrm >> mode))
+				return ;
+			if (!(sstrm >> line))
+				return ;
+			mSection->addAlias(mode, line);
 		}
 		lineid++;
 	}
+}
+
+AccessControlSection		&AccessControlSection::addAlias(const std::string &key,
+															const std::string &val)
+{
+	mAliases[key] = val;
+	return (*this);
+}
+
+StringMap					AccessControlSection::getAliases() const
+{
+	return (mAliases);
+}
+
+void						AccessControlSection::setAliases(const StringMap &m)
+{
+	mAliases = m;
 }
 
 # undef PARSE_ERROR

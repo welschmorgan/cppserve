@@ -1,19 +1,20 @@
 // ************************************************************************** //
 //                                                                            //
 //                                                        :::      ::::::::   //
-//   libargs.hpp                                        :+:      :+:    :+:   //
+//   libfs.hpp                                          :+:      :+:    :+:   //
 //                                                    +:+ +:+         +:+     //
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
-//   Created: 2017/04/23 17:29:47 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/30 12:26:24 by mwelsch          ###   ########.fr       //
+//   Created: 2017/04/30 13:11:29 by mwelsch           #+#    #+#             //
+//   Updated: 2017/04/30 17:58:45 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
+#ifndef LIBFS_LIBFS_HPP
+# define LIBFS_LIBFS_HPP
 
-#ifndef LIBPROCESS_HPP
-# define LIBPROCESS_HPP
-
-# include "libprocess/args.hpp"
-# include "libprocess/process.hpp"
+# include "fwd.hpp"
+# include "except.hpp"
+# include "path.hpp"
+# include "cstream.hpp"
 
 #endif

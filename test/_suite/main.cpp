@@ -1,19 +1,28 @@
 // ************************************************************************** //
 //                                                                            //
 //                                                        :::      ::::::::   //
-//   libargs.hpp                                        :+:      :+:    :+:   //
+//   main.cpp                                           :+:      :+:    :+:   //
 //                                                    +:+ +:+         +:+     //
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
-//   Created: 2017/04/23 17:29:47 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/30 12:26:24 by mwelsch          ###   ########.fr       //
+//   Created: 2017/04/30 08:46:35 by mwelsch           #+#    #+#             //
+//   Updated: 2017/04/30 12:40:12 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
+#include "main.hpp"
+#include <libprocess/process.hpp>
 
-#ifndef LIBPROCESS_HPP
-# define LIBPROCESS_HPP
+using namespace unit_test;
+using namespace proc;
 
-# include "libprocess/args.hpp"
-# include "libprocess/process.hpp"
+int					main()
+{
+	suite							suite;
+	process							proc("/bin/ls");
 
-#endif
+	suite.discover("./");
+	suite.run();
+	proc.arg("-alh");
+	proc.execute();
+	return (0);
+}

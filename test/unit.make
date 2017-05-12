@@ -2,16 +2,19 @@ SERV_DIR=../..
 
 SERV_INC_DIR=$(SERV_DIR)/inc
 SERV_OBJ_DIR=$(SERV_DIR)/obj
+SERV_LIB_DIR=$(SERV_DIR)/lib
 SERV_SRC_DIR=$(SERV_DIR)/src
 
+LIBS=$(shell find $(SERV_LIB_DIR) -mindepth 1 -maxdepth 1 -type d)
 INC_DIR=inc
 OBJ_DIR=$(SERV_OBJ_DIR)/unit_test/$(TARGET)
 SRC_DIR=src
 
 CC=clang++
 STDLIB_FLAGS=-std=c++11 -stdlib=libstdc++
-CXXFLAGS=$(STDLIB_FLAGS) -ggdb -I. -I$(INC_DIR) -I$(SERV_DIR)/$(INC_DIR) -Wall -Werror -Wextra
-LDFLAGS=$(STDLIB_FLAGS) -lstdc++ #-L$(SERV_DIR) -lunit_test
+CXXFLAGS=$(STDLIB_FLAGS) -ggdb -I. -I$(INC_DIR) $(patsubst %,-I%,$(LIBS)) $(patsubst %,-I%/inc,$(LIBS)) -I$(SERV_DIR)/$(INC_DIR) -Wall -Werror -Wextra
+LDFLAGS=$(STDLIB_FLAGS) -lstdc++ -L$(SERV_LIB_DIR) $(patsubst %,-L%,$(LIBS)) $(patsubst %,-l%,$(shell echo $(LIBS) | xargs basename))
+#-L$(SERV_DIR) -lunit_test
 
 SRCS=$(shell test -e $(SRC_DIR) && find $(SRC_DIR) -type f | grep '.cpp')
 OBJS=$(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))

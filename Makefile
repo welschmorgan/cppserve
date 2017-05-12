@@ -6,7 +6,7 @@
 #    By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2017/02/04 13:52:33 by mwelsch           #+#    #+#              #
-#    Updated: 2017/04/23 18:27:03 by mwelsch          ###   ########.fr        #
+#    Updated: 2017/04/29 20:16:30 by mwelsch          ###   ########.fr        #
 #                                                                              #
 #******************************************************************************#
 
@@ -21,7 +21,7 @@ LIBS = process
 
 SRCS = main.cpp host.cpp server.cpp launch_options.cpp client.cpp socket.cpp \
 address.cpp manual.cpp locator.cpp access_control.cpp request.cpp response.cpp \
-status.cpp protocol.cpp cache.cpp logger.cpp
+status.cpp protocol.cpp cache.cpp logger.cpp json.cpp
 OBJS = $(patsubst %,$(OBJ_DIR)/%,$(SRCS:%.cpp=%.o))
 
 MAKE = make --no-print-directory

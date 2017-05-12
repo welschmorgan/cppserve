@@ -1,7 +1,0 @@
-section include /
-section exclude /src
-section exclude /obj
-section exclude /.git
-section exclude /inc
-
-#

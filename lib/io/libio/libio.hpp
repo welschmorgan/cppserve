@@ -1,19 +1,19 @@
 // ************************************************************************** //
 //                                                                            //
 //                                                        :::      ::::::::   //
-//   libargs.hpp                                        :+:      :+:    :+:   //
+//   libio.hpp                                          :+:      :+:    :+:   //
 //                                                    +:+ +:+         +:+     //
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
-//   Created: 2017/04/23 17:29:47 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/30 12:26:24 by mwelsch          ###   ########.fr       //
+//   Created: 2017/05/01 16:16:45 by mwelsch           #+#    #+#             //
+//   Updated: 2017/05/12 19:45:23 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
-#ifndef LIBPROCESS_HPP
-# define LIBPROCESS_HPP
+#ifndef LIBIO_LIBIO_HPP
+# define LIBIO_LIBIO_HPP
 
-# include "libprocess/args.hpp"
-# include "libprocess/process.hpp"
+# include "codec.hpp"
+# include "json.hpp"
 
 #endif

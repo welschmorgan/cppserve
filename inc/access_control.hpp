@@ -6,7 +6,7 @@
 /*   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/10 23:29:51 by mwelsch           #+#    #+#             */
-/*   Updated: 2017/02/12 18:49:54 by mwelsch          ###   ########.fr       */
+//   Updated: 2017/04/29 20:08:12 by mwelsch          ###   ########.fr       //
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,11 @@ public:
 	const StringList			&getIPs() const;
 	const StringList			&getURIs() const;
 
+	AccessControlSection		&addAlias(const std::string &key,
+										  const std::string &val);
+	StringMap					getAliases() const;
+	void						setAliases(const StringMap &m);
+
 	Mode						getMode() const;
 	void						setMode(Mode m);
 
@@ -59,6 +64,7 @@ protected:
 	StringMap					mHeaders;
 	StringList					mIPs;
 	StringList					mURIs;
+	StringMap					mAliases;
 	Mode						mMode;
 
 };

@@ -1,4 +1,6 @@
 logger/logger
+fs_path_hash/fs_path_hash
 request_write/request_write
-socketstream_connect/socketstream_connect
+fs_path_size/fs_path_size
+json/json
 unit_test/unit_test

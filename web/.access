@@ -1,0 +1,4 @@
+# /
+section include /
+		index web/index.html
+		alias 404 web/errors/404.html

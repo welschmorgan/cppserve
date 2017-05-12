@@ -6,11 +6,11 @@
 #    By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2017/04/21 23:00:36 by mwelsch           #+#    #+#              #
-#    Updated: 2017/04/29 19:43:57 by mwelsch          ###   ########.fr        #
+#    Updated: 2017/04/30 11:10:00 by mwelsch          ###   ########.fr        #
 #                                                                              #
 #******************************************************************************#
 
-TESTS = $(shell find . -mindepth 1 -maxdepth 1 -type d | sed 's/\.\///')
+TESTS = $(shell find . -mindepth 1 -maxdepth 1 -type d | sed 's/\.\///' | grep -v '_suite')
 
 MAKE=make --no-print-directory
 
@@ -22,18 +22,24 @@ define work
 endef
 
 all:
-	rm -f '.gitignore'
-	touch '.gitignore'
+	@rm -f '.gitignore'
+	@touch '.gitignore'
+	TARGET=suite $(MAKE) -C _suite -f ../unit.make $(1)
 	@$(call work,all)
 
+suite:
+	TARGET=suite $(MAKE) -C _suite -f ../unit.make $(1)
+
 run:
-	@$(call work,run)
+	TARGET=suite $(MAKE) run -C _suite -f ../unit.make $(1)
 
 clean:
 	@$(call work,clean)
+	TARGET=suite $(MAKE) clean -C _suite -f ../unit.make $(1)
 
 fclean:
 	@$(call work,fclean)
+	TARGET=suite $(MAKE) fclean -C _suite -f ../unit.make $(1)
 
 re: fclean all
 
