@@ -1,3 +1,7 @@
 cppserve
 obj
 *.log
+lib/*/*.a
+test/io_config_basic/io_config
+test/io_config_dotnotation/io_config
+test/io_config_dotnotation/io_config_basic/

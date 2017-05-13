@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/04/23 18:28:28 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/24 21:47:03 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/05/13 15:26:41 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -31,8 +31,10 @@ public:
 
 int			main()
 {
-	unit_test::func<int, void*>("static function",
-								type::run_static)
-		.must_return(10, NULL);
+	unit_test::func<int, void*> fn("static function",
+								   "simple static func test",
+								   type::run_static);
+	if (fn(NULL) != EXIT_SUCCESS)
+		return (EXIT_FAILURE);
 	return (EXIT_SUCCESS);
 }

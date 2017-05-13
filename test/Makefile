@@ -6,7 +6,7 @@
 #    By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2017/04/21 23:00:36 by mwelsch           #+#    #+#              #
-#    Updated: 2017/04/30 11:10:00 by mwelsch          ###   ########.fr        #
+#    Updated: 2017/05/13 15:21:46 by mwelsch          ###   ########.fr        #
 #                                                                              #
 #******************************************************************************#
 
@@ -31,7 +31,8 @@ suite:
 	TARGET=suite $(MAKE) -C _suite -f ../unit.make $(1)
 
 run:
-	TARGET=suite $(MAKE) run -C _suite -f ../unit.make $(1)
+#TARGET=suite $(MAKE) run -C _suite -f ../unit.make $(1)
+	@$(call work,run)
 
 clean:
 	@$(call work,clean)

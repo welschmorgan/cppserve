@@ -6,7 +6,7 @@
 #    By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2017/02/04 13:52:33 by mwelsch           #+#    #+#              #
-#    Updated: 2017/04/29 20:16:30 by mwelsch          ###   ########.fr        #
+#    Updated: 2017/05/13 15:20:46 by mwelsch          ###   ########.fr        #
 #                                                                              #
 #******************************************************************************#
 
@@ -36,6 +36,9 @@ all: $(TARGET) test
 test:
 	$(MAKE) -C test
 
+run_tests:
+	$(MAKE) -C test run
+
 libs:
 	$(MAKE) -C lib
 
@@ -56,4 +59,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: clean fclean re all test libs
+.PHONY: clean fclean re libs all test run_tests

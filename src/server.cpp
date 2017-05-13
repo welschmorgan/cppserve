@@ -6,7 +6,7 @@
 //   By: mwelsch <mwelsch@student.42.fr>            +#+  +:+       +#+        //
 //                                                +#+#+#+#+#+   +#+           //
 //   Created: 2017/02/04 13:43:08 by mwelsch           #+#    #+#             //
-//   Updated: 2017/04/29 19:54:15 by mwelsch          ###   ########.fr       //
+//   Updated: 2017/05/12 19:57:39 by mwelsch          ###   ########.fr       //
 //                                                                            //
 // ************************************************************************** //
 
@@ -421,6 +421,7 @@ void							HTTPServer::handleGetRequest(SharedHTTPClientPtr client,
 			mResponse->setStatus(HTTPStatus::Redirect::NotModified);
 		else
 		{
+			(*mLogger) << "\topening:" << path << std::endl;
 			ifs.open(path);
 			if (!ifs)
 			{

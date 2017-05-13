@@ -25,15 +25,17 @@ lib$(TARGET).a: $(OBJS) $(PLAIN_OBJS)
 	$(LD) $(LDFLAGS) $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	mkdir -p $(OBJ_DIR)
+	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CXXFLAGS) -c -o $@ $<
 
 $(OBJ_DIR)/%.o: %.cpp
-	mkdir -p $(OBJ_DIR)
+	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CXXFLAGS) -c -o $@ $<
 
 clean:
-	rm -f $(OBJS) $(PLAIN_OBJS)
+	@if [ ! -z "$(OBJS)$(PLAIN_OBJS)" ]; then \
+		rm -f $(OBJS) $(PLAIN_OBJS); \
+	fi
 
 fclean: clean
 	rm -f lib$(TARGET).a

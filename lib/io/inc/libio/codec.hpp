@@ -3,6 +3,7 @@
 
 # include <string>
 # include <streambuf>
+# include <iostream>
 
 template<typename char_t,
 		 uint32_t blk_sz = 64>

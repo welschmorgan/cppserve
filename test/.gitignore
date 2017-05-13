@@ -1,6 +1,8 @@
+io_config_dotnotation/io_config_dotnotation
 logger/logger
 fs_path_hash/fs_path_hash
 request_write/request_write
 fs_path_size/fs_path_size
 json/json
+io_config_basic/io_config_basic
 unit_test/unit_test
